@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -52,7 +53,6 @@ return new class extends Migration {
             $table->index(['product_id']);
         });
 
-
         Schema::create('service_repair_histories', function (Blueprint $table) {
             $table->id();
 
@@ -96,8 +96,8 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
-        Schema::dropIfExists('service_product');
         Schema::dropIfExists('service_repair_histories');
+        Schema::dropIfExists('service_product');
+        Schema::dropIfExists('services');
     }
 };
