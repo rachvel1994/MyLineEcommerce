@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
             fold: true
         );
         FilamentAsset::register([
-            Css::make('custom-stylesheet-theme', __DIR__ . '/../../resources/css/custom.css')->loadedOnRequest(),
+            Css::make('custom-stylesheet-theme', __DIR__ . '/../../resources/css/filament/backend/theme.css')->loadedOnRequest(),
         ]);
 
         Table::configureUsing(function (Table $table): void {
