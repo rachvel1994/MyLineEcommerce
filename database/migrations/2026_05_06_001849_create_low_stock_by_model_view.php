@@ -9,7 +9,7 @@ return new class extends Migration {
         DB::statement("DROP VIEW IF EXISTS low_stock_by_model");
 
         DB::statement("
-            CREATE VIEW low_stock_by_model AS
+            CREATE SQL SECURITY INVOKER VIEW low_stock_by_model AS
             SELECT
                 products.model_id AS model_id,
                 COUNT(products.id) AS total

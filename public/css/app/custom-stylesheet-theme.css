@@ -1,0 +1,84 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/* make only body rows minimal */
+.fi-ta-table tbody > tr.fi-ta-row {
+    height: 30px !important;
+}
+
+/* shrink only body cells */
+.fi-ta-table tbody > tr.fi-ta-row > td.fi-ta-cell {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 22px !important;
+    vertical-align: middle !important;
+}
+
+/* shrink inner text wrapper */
+.fi-ta-table tbody .fi-ta-col {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 22px !important;
+    display: flex;
+    align-items: center;
+}
+
+/* your markup shows text inside .fi-ta-text / .fi-ta-text-item */
+.fi-ta-table tbody .fi-ta-text,
+.fi-ta-table tbody .fi-ta-text-item {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* action column is often the tallest part */
+.fi-ta-table tbody .fi-ta-actions {
+    gap: 4px !important;
+    min-height: 22px !important;
+    align-items: center !important;
+}
+
+.fi-ta-table tbody .fi-ac-link-action,
+.fi-ta-table tbody .fi-link {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 20px !important;
+}
+
+/* checkboxes can also force row height */
+.fi-ta-table tbody .fi-checkbox-input {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+
+.fi-pagination .fi-pagination-overview {
+    display: block!important;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.fi-ta-content-ctn {
+    overflow-x: auto !important;
+    width: 100% !important;
+}
+
+.dual-scroll {
+    overflow-x: auto;
+}
+
+.dual-scroll-top {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 16px;
+}
+
+.dual-scroll-inner {
+    height: 1px;
+}
+
