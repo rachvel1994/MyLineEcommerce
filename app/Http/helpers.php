@@ -1,25 +1,33 @@
 <?php
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Random\RandomException;
 
-if (!function_exists('canAbility')) {
-    function canAbility($ability): ?string
+if (! function_exists('canAbility')) {
+    function canAbility($ability): bool
     {
-        $user = auth()->user();
-        if (!$user) return false;
+        static $results = [];
 
-        return $user->can($ability);
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        $cacheKey = $user->getAuthIdentifier().'|'.$ability;
+
+        if (array_key_exists($cacheKey, $results)) {
+            return $results[$cacheKey];
+        }
+
+        return $results[$cacheKey] = (bool) $user->can($ability);
     }
 }
 
-if (!function_exists('companies')) {
+if (! function_exists('companies')) {
     function companies(?int $companyId = null): array|string|null
     {
         $companies = [
@@ -28,7 +36,7 @@ if (!function_exists('companies')) {
             3 => 'ქონსტრაქშენი',
         ];
 
-        if (!is_null($companyId)) {
+        if (! is_null($companyId)) {
             return $companies[$companyId] ?? null;
         }
 
@@ -36,43 +44,42 @@ if (!function_exists('companies')) {
     }
 }
 
-if (!function_exists('diffForHumans')) {
+if (! function_exists('diffForHumans')) {
     function diffForHumans($date): ?string
     {
         return Carbon::parse($date)->diffForHumans();
     }
 }
 
-if (!function_exists('getImageUrl')) {
+if (! function_exists('getImageUrl')) {
     function getImageUrl($url = null): ?string
     {
-        return empty($url) ? asset('assets/images/no_image.webp') : asset('storage/' . $url);
+        return empty($url) ? asset('assets/images/no_image.webp') : asset('storage/'.$url);
     }
 }
 
-if (!function_exists('dateWithoutTime')) {
+if (! function_exists('dateWithoutTime')) {
     function dateWithoutTime($date): ?string
     {
         return Carbon::parse($date)->format('d-m-Y');
     }
 }
 
-if (!function_exists('money')) {
+if (! function_exists('money')) {
     function money($price): string
     {
-        return number_format($price, 2, ',', '.') . ' ₾';
+        return number_format($price, 2, ',', '.').' ₾';
     }
 }
 
-if (!function_exists('moneyWithoutSymbol')) {
+if (! function_exists('moneyWithoutSymbol')) {
     function moneyWithoutSymbol($price): string
     {
         return number_format($price, 2, ',', '.');
     }
 }
 
-
-if (!function_exists('send_sms')) {
+if (! function_exists('send_sms')) {
 
     function send_sms(string $mobile, string $template, array $params = []): bool
     {
@@ -87,20 +94,20 @@ if (!function_exists('send_sms')) {
                 ->retry(2, 300)
                 ->withHeaders([
                     'Accept' => 'application/json',
-                    'Authorization' => 'Bearer ' . config('sms.token'),
+                    'Authorization' => 'Bearer '.config('sms.token'),
                 ])
                 ->asMultipart()
                 ->post('https://smsservice.inexphone.ge/api/v1/sms/one', [
                     [
-                        'name'     => 'subject',
+                        'name' => 'subject',
                         'contents' => config('sms.subject', 'MYLINE.GE'),
                     ],
                     [
-                        'name'     => 'message',
+                        'name' => 'message',
                         'contents' => $template,
                     ],
                     [
-                        'name'     => 'phone',
+                        'name' => 'phone',
                         'contents' => $mobile,
                     ],
                 ]);
@@ -116,7 +123,7 @@ if (!function_exists('send_sms')) {
 
             return false;
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('SMS exception', [
                 'mobile' => $mobile,
                 'error' => $e->getMessage(),
@@ -127,7 +134,7 @@ if (!function_exists('send_sms')) {
     }
 }
 
-if (!function_exists('resend_send_sms')) {
+if (! function_exists('resend_send_sms')) {
 
     /**
      * @throws RandomException
@@ -137,15 +144,14 @@ if (!function_exists('resend_send_sms')) {
         $code = random_int(100000, 999999);
 
         auth()->user()->update([
-            'sms_code' => $code
+            'sms_code' => $code,
         ]);
 
         send_sms($mobile, "Verification code - $code");
     }
 }
 
-
-if (!function_exists('firstUpper')) {
+if (! function_exists('firstUpper')) {
     function firstUpper(string $value): string
     {
         $value = mb_strtolower(trim($value));
@@ -154,27 +160,26 @@ if (!function_exists('firstUpper')) {
             return $value;
         }
 
-        return mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
+        return mb_strtoupper(mb_substr($value, 0, 1)).mb_substr($value, 1);
     }
 }
 
-
-if (!function_exists('mobile_format')) {
+if (! function_exists('mobile_format')) {
     function mobile_format($mobile): string
     {
         $mobile = preg_replace('/[^0-9]/', '', $mobile);
 
         if (str_starts_with($mobile, '+995')) {
             $mobile = substr($mobile, 1);
-        } elseif (!str_starts_with($mobile, '995')) {
-            $mobile = '995' . $mobile;
+        } elseif (! str_starts_with($mobile, '995')) {
+            $mobile = '995'.$mobile;
         }
 
         return $mobile;
     }
 }
 
-if (!function_exists('generateSecurePassword')) {
+if (! function_exists('generateSecurePassword')) {
 
     function generateSecurePassword(int $length = 12): string
     {
@@ -183,11 +188,11 @@ if (!function_exists('generateSecurePassword')) {
         $digits = '0123456789';
         $special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
-        $all = $upper . $lower . $digits . $special;
+        $all = $upper.$lower.$digits.$special;
 
-        $password = substr(str_shuffle($upper), 0, 2) .
-            substr(str_shuffle($lower), 0, 4) .
-            substr(str_shuffle($digits), 0, 2) .
+        $password = substr(str_shuffle($upper), 0, 2).
+            substr(str_shuffle($lower), 0, 4).
+            substr(str_shuffle($digits), 0, 2).
             substr(str_shuffle($special), 0, 2);
 
         $remaining = $length - strlen($password);
@@ -197,7 +202,7 @@ if (!function_exists('generateSecurePassword')) {
     }
 }
 
-if (!function_exists('generateOrderId')) {
+if (! function_exists('generateOrderId')) {
     function generateOrderId(mixed $order): string
     {
 
@@ -209,23 +214,31 @@ if (!function_exists('generateOrderId')) {
         $lastNumber = 0;
 
         if ($lastOrder && preg_match('/(\d+)$/', $lastOrder->order_id, $matches)) {
-            $lastNumber = (int)$matches[1];
+            $lastNumber = (int) $matches[1];
         }
 
         $nextNumber = $lastNumber + 1;
 
-        return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }
 
-if (!function_exists('toArray')) {
+if (! function_exists('toArray')) {
     function toArray(string $model, string $column = 'name', string $key = 'id'): array
     {
-        return $model::query()->pluck($column, $key)->toArray();
+        static $options = [];
+
+        $cacheKey = implode('|', [$model, $column, $key]);
+
+        if (array_key_exists($cacheKey, $options)) {
+            return $options[$cacheKey];
+        }
+
+        return $options[$cacheKey] = $model::query()->pluck($column, $key)->toArray();
     }
 }
 
-if (!function_exists('parseXfields')) {
+if (! function_exists('parseXfields')) {
     function parseXfields(string $xfields): array
     {
         $result = [];
@@ -235,8 +248,8 @@ if (!function_exists('parseXfields')) {
             // თითო ჩანაწერში პირველი "|" ყოფს key-ს და value-ს
             [$key, $value] = array_pad(explode('|', $pair, 2), 2, null);
 
-            $key = trim((string)$key);
-            $value = trim((string)$value);
+            $key = trim((string) $key);
+            $value = trim((string) $value);
 
             if ($key !== '') {
                 $result[$key] = $value;
@@ -247,26 +260,26 @@ if (!function_exists('parseXfields')) {
     }
 }
 
-if (!function_exists('resolveSelectedIdsFromRequest')) {
+if (! function_exists('resolveSelectedIdsFromRequest')) {
     /**
      * Resolve selected IDs reliably from Filament request / $records param.
      *
-     * @param Collection $records // Filament provided collection (may be partial)
+     * @param  Collection  $records  // Filament provided collection (may be partial)
      * @return int[]
      */
     function resolveSelectedIdsFromRequest(Collection $records): array
     {
         $raw = request()->input('records') ?? request()->input('selected') ?? null;
 
-        if (!empty($raw)) {
+        if (! empty($raw)) {
             if (is_string($raw) && $raw === 'all') {
                 return ['all'];
             }
 
-            $arr = (array)$raw;
+            $arr = (array) $raw;
             $ids = array_map('intval', $arr);
-            $ids = array_filter($ids, fn($v) => $v > 0);
-            if (!empty($ids)) {
+            $ids = array_filter($ids, fn ($v) => $v > 0);
+            if (! empty($ids)) {
                 return array_values($ids);
             }
         }
@@ -275,7 +288,9 @@ if (!function_exists('resolveSelectedIdsFromRequest')) {
         if (is_array($components)) {
             foreach ($components as $comp) {
                 $snapshotRaw = $comp['snapshot'] ?? $comp['data'] ?? null;
-                if (!$snapshotRaw) continue;
+                if (! $snapshotRaw) {
+                    continue;
+                }
 
                 if (is_array($snapshotRaw)) {
                     $snap = $snapshotRaw;
@@ -293,20 +308,24 @@ if (!function_exists('resolveSelectedIdsFromRequest')) {
                     $first = $selected[0] ?? null;
                     if (is_array($first)) {
                         $ids = array_map('intval', $first);
-                        $ids = array_filter($ids, fn($v) => $v > 0);
-                        if (!empty($ids)) return array_values($ids);
+                        $ids = array_filter($ids, fn ($v) => $v > 0);
+                        if (! empty($ids)) {
+                            return array_values($ids);
+                        }
                     } elseif (is_string($first) && trim($first) !== '') {
                         $parts = preg_split('/\s*,\s*/', $first);
                         $ids = array_map('intval', $parts);
-                        $ids = array_filter($ids, fn($v) => $v > 0);
-                        if (!empty($ids)) return array_values($ids);
+                        $ids = array_filter($ids, fn ($v) => $v > 0);
+                        if (! empty($ids)) {
+                            return array_values($ids);
+                        }
                     }
                 }
             }
         }
 
         if ($records->isNotEmpty()) {
-            return $records->pluck('id')->map(fn($v) => (int)$v)->all();
+            return $records->pluck('id')->map(fn ($v) => (int) $v)->all();
         }
 
         return [];
