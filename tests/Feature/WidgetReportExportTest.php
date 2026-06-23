@@ -4,6 +4,7 @@ use App\Enums\WidgetReport;
 use App\Http\Requests\WidgetReportExportRequest;
 use App\Models\User;
 use App\Services\Reports\WidgetReportExportService;
+use App\Support\WidgetReportAccess;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,56 @@ use Illuminate\Support\Facades\Validator;
 afterEach(function (): void {
     Carbon::setTestNow();
 });
+
+function refreshWidgetReportRoleTables(): void
+{
+    Schema::dropIfExists('model_has_roles');
+    Schema::dropIfExists('roles');
+
+    Schema::create('roles', function (Blueprint $table): void {
+        $table->id();
+        $table->string('name');
+        $table->string('guard_name')->default('web');
+        $table->timestamps();
+    });
+
+    Schema::create('model_has_roles', function (Blueprint $table): void {
+        $table->unsignedBigInteger('role_id');
+        $table->string('model_type');
+        $table->unsignedBigInteger('model_id');
+        $table->index(['model_id', 'model_type']);
+    });
+}
+
+function widgetReportUser(int $id): User
+{
+    $user = new User([
+        'name' => "Report User {$id}",
+        'email' => "report-user-{$id}@example.com",
+        'password' => 'password',
+    ]);
+    $user->id = $id;
+    $user->exists = true;
+
+    return $user;
+}
+
+function assignWidgetReportRole(User $user, int $roleId): void
+{
+    DB::table('roles')->insertOrIgnore([
+        'id' => $roleId,
+        'name' => "Role {$roleId}",
+        'guard_name' => 'web',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    DB::table('model_has_roles')->insertOrIgnore([
+        'role_id' => $roleId,
+        'model_type' => $user->getMorphClass(),
+        'model_id' => $user->getKey(),
+    ]);
+}
 
 test('widget report options default to all widgets', function (): void {
     app()->setLocale('en');
@@ -64,7 +115,7 @@ test('widget report file name includes widget and date range', function (): void
 });
 
 test('widget report request validates widget and date filters', function (): void {
-    $rules = app(WidgetReportExportRequest::class)->rules();
+    $rules = (new WidgetReportExportRequest)->rules();
 
     expect(Validator::make([
         'widget' => WidgetReport::ALL,
@@ -83,6 +134,37 @@ test('widget report request validates widget and date filters', function (): voi
         'from_date' => '2026-06-30',
         'to_date' => '2026-06-01',
     ], $rules)->fails())->toBeTrue();
+});
+
+test('widget report export access is limited to spatie role id 1', function (): void {
+    refreshWidgetReportRoleTables();
+
+    $admin = widgetReportUser(101);
+    $otherUser = widgetReportUser(102);
+
+    assignWidgetReportRole($admin, WidgetReportAccess::ROLE_ID);
+    assignWidgetReportRole($otherUser, 2);
+
+    expect(WidgetReportAccess::allowed($admin))
+        ->toBeTrue()
+        ->and(WidgetReportAccess::allowed($otherUser))
+        ->toBeFalse();
+});
+
+test('widget report export route forbids authenticated users without role id 1', function (): void {
+    refreshWidgetReportRoleTables();
+
+    $user = widgetReportUser(201);
+    assignWidgetReportRole($user, 2);
+
+    $this
+        ->actingAs($user)
+        ->get(route('widget-reports.export', [
+            'widget' => WidgetReport::CashDrawer->value,
+            'from_date' => '2026-06-01',
+            'to_date' => '2026-06-30',
+        ]))
+        ->assertForbidden();
 });
 
 test('widget report service can build a filtered workbook', function (): void {

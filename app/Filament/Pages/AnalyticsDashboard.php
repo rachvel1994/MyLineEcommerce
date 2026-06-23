@@ -13,6 +13,7 @@ use App\Filament\Widgets\SalesSourcesChartWidget;
 use App\Filament\Widgets\SellerPerformanceWidget;
 use App\Filament\Widgets\TopModelsWidget;
 use App\Filament\Widgets\TopUsersChartWidget;
+use App\Support\WidgetReportAccess;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
@@ -64,7 +65,7 @@ class AnalyticsDashboard extends Page
                 ->label(__('admin.widget_report_excel'))
                 ->icon(Heroicon::ArrowDownTray)
                 ->color('info')
-                ->visible(fn (): bool => (bool) auth()->user()?->can('View:AnalyticsDashboard'))
+                ->visible(fn (): bool => WidgetReportAccess::allowed(auth()->user()))
                 ->schema([
                     Select::make('widget')
                         ->label(__('admin.widget'))

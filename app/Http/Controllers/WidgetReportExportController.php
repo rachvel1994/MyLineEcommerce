@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Enums\WidgetReport;
 use App\Http\Requests\WidgetReportExportRequest;
 use App\Services\Reports\WidgetReportExportService;
+use App\Support\WidgetReportAccess;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WidgetReportExportController extends Controller
@@ -15,7 +16,7 @@ class WidgetReportExportController extends Controller
         WidgetReportExportRequest $request,
         WidgetReportExportService $exportService
     ): StreamedResponse {
-        abort_unless($request->user()?->can('View:AnalyticsDashboard'), 403);
+        abort_unless(WidgetReportAccess::allowed($request->user()), 403);
 
         $data = $request->validated();
         [$fromDate, $toDate] = $exportService->resolveDateRange(
