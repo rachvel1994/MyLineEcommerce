@@ -14,7 +14,6 @@ use App\Models\Product;
 use App\Models\Status;
 use App\Models\User;
 use BackedEnum;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -82,14 +81,26 @@ class ProductResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('status')
+            ->with([
+                'battery',
+                'color',
+                'condition',
+                'hearAbout',
+                'information',
+                'model',
+                'payments.payment',
+                'services',
+                'status',
+                'storage',
+                'user',
+            ])
             ->orderBy(
                 Status::query()->select('sort_order')
                     ->whereColumn('statuses.id', 'products.status_id')
             )
             ->orderByDesc('products.created_at');
     }
-    
+
     public static function getPluralModelLabel(): string
     {
         return __('admin.product');

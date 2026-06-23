@@ -29,7 +29,7 @@ class ListProducts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            ...static::productHeaderActions()
+            ...static::productHeaderActions(),
         ];
     }
 
@@ -37,10 +37,9 @@ class ListProducts extends ListRecords
     {
         return [
             ProductListWidget::class,
-            ProductPageWidget::class
+            ProductPageWidget::class,
         ];
     }
-
 
     /**
      * ✅ UI RESET (optional but recommended)
@@ -56,38 +55,39 @@ class ListProducts extends ListRecords
     public function getTabs(): array
     {
         $tabs = [];
+        $hiddenFromAllStatusIds = [4, 6, 10];
 
         $statuses = Status::query()
             ->where('show_in_product', true)
             ->orderBy('sort_order')
             ->get();
 
+        $statusCounts = Product::query()
+            ->selectRaw('status_id, COUNT(*) as aggregate')
+            ->groupBy('status_id')
+            ->get()
+            ->mapWithKeys(
+                fn ($row): array => [(string) ($row->status_id ?? 'null') => (int) $row->aggregate]
+            );
+
+        $allCount = $statusCounts
+            ->reject(fn (int $count, string $statusId): bool => $statusId === 'null' || in_array((int) $statusId, $hiddenFromAllStatusIds, true))
+            ->sum();
+
         $tabs[__('admin.all')] = Tab::make(__('admin.all'))
-            ->badge(
-                Product::query()
-                    ->whereNotIn('status_id', [4, 6, 10])
-                    ->count()
-            )
-            ->modifyQueryUsing(fn(Builder $query) => $query->whereNotIn('status_id', [4, 6, 10]));
+            ->badge($allCount)
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNotIn('status_id', $hiddenFromAllStatusIds));
 
         foreach ($statuses as $status) {
 
             $tabs[$status->name] = Tab::make($status->name)
-                ->badge(
-                    Product::query()
-                        ->where('status_id', $status->id)
-                        ->count()
-                )
-                ->modifyQueryUsing(fn(Builder $query) => $query->where('status_id', $status->id));
+                ->badge($statusCounts->get((string) $status->id, 0))
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status_id', $status->id));
         }
 
         $tabs[__('admin.no_status')] = Tab::make(__('admin.no_status'))
-            ->badge(
-                Product::query()
-                    ->whereNull('status_id')
-                    ->count()
-            )
-            ->modifyQueryUsing(fn(Builder $query) => $query->whereNull('status_id'));
+            ->badge($statusCounts->get('null', 0))
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('status_id'));
 
         return $tabs;
     }
@@ -149,7 +149,6 @@ class ListProducts extends ListRecords
         );
     }
 
-
     public function updatedTableFilters(): void
     {
         $statusId = $this->tableFilters['status_id']['value'] ?? null;
@@ -168,7 +167,7 @@ class ListProducts extends ListRecords
             }
         }
 
-        if (!$status && $statusId) {
+        if (! $status && $statusId) {
             $status = Status::find($statusId);
         }
 
@@ -176,7 +175,7 @@ class ListProducts extends ListRecords
             $status = Status::find(4);
         }
 
-        if (!$status) {
+        if (! $status) {
             return;
         }
 
@@ -185,7 +184,7 @@ class ListProducts extends ListRecords
 
     public function updatedTableSearch(): void
     {
-        $search = trim((string)$this->tableSearch);
+        $search = trim((string) $this->tableSearch);
 
         if (blank($search)) {
             return;
@@ -199,7 +198,7 @@ class ListProducts extends ListRecords
                     });
             })->first();
 
-        if (!$product) {
+        if (! $product) {
             return;
         }
 
