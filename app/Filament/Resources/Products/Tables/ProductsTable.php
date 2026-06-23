@@ -4,19 +4,7 @@ namespace App\Filament\Resources\Products\Tables;
 
 use App\Filament\Traits\HasProductActions;
 use App\Filament\Traits\HasProductBulkActions;
-use App\Models\Battery;
-use App\Models\Category;
-use App\Models\Color;
-use App\Models\Condition;
-use App\Models\Delivery;
-use App\Models\Guarantee;
-use App\Models\HearAbout;
-use App\Models\Payment;
 use App\Models\Product;
-use App\Models\ProductModel;
-use App\Models\Status;
-use App\Models\Storage;
-use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
@@ -297,15 +285,15 @@ class ProductsTable
                         );
                     }),
                 SelectFilter::make('user_id')
+                    ->relationship('user', 'name')
                     ->preload()
-                    ->options(toArray(User::class))
                     ->label(__('admin.user'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewUser')),
 
                 SelectFilter::make('model_id')
+                    ->relationship('model', 'name')
                     ->preload()
-                    ->options(toArray(ProductModel::class))
                     ->label(__('admin.model'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewModel')),
@@ -313,14 +301,8 @@ class ProductsTable
                 SelectFilter::make('payment_id')
                     ->searchable()
                     ->label(__('admin.payment'))
-                    ->options(toArray(Payment::class))
-                    ->query(function ($query, $data) {
-                        return $query->when(
-                            $data['value'] ?? null,
-                            fn ($q, $value) => $q->whereHas('payments', fn ($p) => $p->where('payment_id', $value)
-                            )
-                        );
-                    }),
+                    ->relationship('payments.payment', 'name')
+                    ->preload(),
 
                 SelectFilter::make('company_id')
                     ->preload()
@@ -330,64 +312,64 @@ class ProductsTable
                     ->visible(fn () => static::productAbility('CanViewCompany')),
 
                 SelectFilter::make('category_id')
+                    ->relationship('category', 'name')
                     ->preload()
-                    ->options(toArray(Category::class))
                     ->label(__('admin.category'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewCategory')),
 
                 SelectFilter::make('condition_id')
+                    ->relationship('condition', 'name')
                     ->preload()
-                    ->options(toArray(Condition::class))
                     ->label(__('admin.condition'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewCondition')),
 
                 SelectFilter::make('color_id')
+                    ->relationship('color', 'name')
                     ->preload()
-                    ->options(toArray(Color::class))
                     ->label(__('admin.color'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewColor')),
 
                 SelectFilter::make('status_id')
+                    ->relationship('status', 'name')
                     ->preload()
-                    ->options(toArray(Status::class))
                     ->label(__('admin.status'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewStatus')),
 
                 SelectFilter::make('storage_id')
+                    ->relationship('storage', 'name')
                     ->preload()
-                    ->options(toArray(Storage::class))
                     ->label(__('admin.storage'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewStorage')),
 
                 SelectFilter::make('battery_id')
+                    ->relationship('battery', 'name')
                     ->preload()
-                    ->options(toArray(Battery::class))
                     ->label(__('admin.battery'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewBattery')),
 
                 SelectFilter::make('delivery_id')
+                    ->relationship('delivery', 'name')
                     ->preload()
-                    ->options(toArray(Delivery::class))
                     ->label(__('admin.delivery'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewDelivery')),
 
                 SelectFilter::make('guarantee_id')
+                    ->relationship('guarantee', 'name')
                     ->preload()
-                    ->options(toArray(Guarantee::class))
                     ->label(__('admin.guarantee'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewGuarantee')),
 
                 SelectFilter::make('hear_about_id')
+                    ->relationship('hearAbout', 'name')
                     ->preload()
-                    ->options(toArray(HearAbout::class))
                     ->label(__('admin.hear_about'))
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewHearAbout')),

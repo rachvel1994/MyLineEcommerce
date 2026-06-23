@@ -11,10 +11,11 @@ use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Carbon;
 
 class ProductPageWidget extends Widget implements HasForms
 {
-    use InteractsWithForms, HasWidgetShield;
+    use HasWidgetShield, InteractsWithForms;
 
     protected string $view = 'filament.widgets.product-page-widget';
 
@@ -23,7 +24,6 @@ class ProductPageWidget extends Widget implements HasForms
     public ?array $filters = [];
 
     protected static bool $isLazy = true;
-
 
     public function getHeading(): string
     {
@@ -49,10 +49,12 @@ class ProductPageWidget extends Widget implements HasForms
 
     public function getStats(): array
     {
-        $from = $this->filters['created_at']['created_from'] ?? now()->startOfMonth()->startOfDay();
-        $to = $this->filters['created_at']['created_until'] ?? now()->endOfMonth()->endOfDay();
-
-        $productQuery = Product::query();
+        $from = filled($this->filters['created_at']['created_from'] ?? null)
+            ? Carbon::parse($this->filters['created_at']['created_from'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+        $to = filled($this->filters['created_at']['created_until'] ?? null)
+            ? Carbon::parse($this->filters['created_at']['created_until'])->endOfDay()
+            : now()->endOfMonth()->endOfDay();
 
         $stats = [];
 
@@ -62,75 +64,60 @@ class ProductPageWidget extends Widget implements HasForms
             ->orderBy('id')
             ->get();
 
-        foreach ($statuses as $status) {
-
-            $count = (clone $productQuery)
-                ->where('status_id', $status->id)
-                ->when($status->id == 4, function ($q) use ($from, $to) {
-                    $q->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
-                        ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to));
+        $statusIds = $statuses->pluck('id')->all();
+        $soldStatusId = $statuses->firstWhere('name', 'გაყიდულია')?->id ?? 4;
+        $statusCounts = $statusIds === []
+            ? collect()
+            : Product::query()
+                ->selectRaw('status_id, COUNT(*) as aggregate')
+                ->whereIn('status_id', $statusIds)
+                ->where(function ($query) use ($soldStatusId, $from, $to) {
+                    $query
+                        ->where('status_id', '!=', $soldStatusId)
+                        ->orWhere(function ($query) use ($soldStatusId, $from, $to) {
+                            $query
+                                ->where('status_id', $soldStatusId)
+                                ->whereBetween('created_at', [$from, $to]);
+                        });
                 })
-                ->count();
+                ->groupBy('status_id')
+                ->pluck('aggregate', 'status_id');
 
+        foreach ($statuses as $status) {
             $stats[] = [
-                'key' => 'status_' . $status->id,
+                'key' => 'status_'.$status->id,
                 'label' => $status->name,
-                'value' => $count,
+                'value' => (int) $statusCounts->get($status->id, 0),
                 'bg' => $status->color ?: 'bg-primary',
                 'text' => 'text-white',
                 'icon' => 'fa-solid fa-box-open',
             ];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Customers / Companies
-        |--------------------------------------------------------------------------
-        */
+        if (auth()->user()?->hasRole('ადმინისტრატორი')) {
+            $countCustomers = User::query()
+                ->whereHas('roles', fn ($q) => $q->where('id', 3))
+                ->count();
 
-        $countCustomers = User::query()
-            ->whereHas('roles', fn($q) => $q->where('id', 3))
-            ->count();
+            $countCompanies = User::query()
+                ->whereHas('roles', fn ($q) => $q->where('id', 2))
+                ->count();
 
-        $countCompanies = User::query()
-            ->whereHas('roles', fn($q) => $q->where('id', 2))
-            ->count();
+            $expense = Expense::query()
+                ->whereBetween('created_at', [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay()])
+                ->sum('amount');
 
-        /*
-        |--------------------------------------------------------------------------
-        | SOLD STATS (FIXED)
-        |--------------------------------------------------------------------------
-        */
+            $serviceExpense = ServiceRepairHistory::query()
+                ->whereBetween('created_at', [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay()])
+                ->sum('repair_price');
 
-        $soldStatusId = Status::query()
-            ->where('name', 'გაყიდულია')
-            ->value('id');
+            $soldQuery = Product::query()
+                ->where('status_id', $soldStatusId)
+                ->whereBetween('created_at', [$from, $to]);
 
-        $expense = Expense::query()
-            ->whereBetween('created_at', [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay()])->sum('amount');
-
-        $serviceExpense = ServiceRepairHistory::query()
-            ->whereBetween('created_at', [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay()])->sum('repair_price');
-
-        $soldQuery = $soldStatusId
-            ? (clone $productQuery)->where('status_id', $soldStatusId)
-            : (clone $productQuery)->whereRaw('1=0');
-
-        $soldQuery->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
-            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to));
-
-        $totalRevenue = (clone $soldQuery)->sum('sale_price');
-        $totalCost = (clone $soldQuery)->sum('price');
-
-        $netProfit = $totalRevenue - $totalCost - $expense - $serviceExpense;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Only Stats
-        |--------------------------------------------------------------------------
-        */
-
-        if (auth()->user()->hasRole('ადმინისტრატორი')) {
+            $totalRevenue = (clone $soldQuery)->sum('sale_price');
+            $totalCost = (clone $soldQuery)->sum('price');
+            $netProfit = $totalRevenue - $totalCost - $expense - $serviceExpense;
 
             $stats[] = [
                 'key' => 'customers',

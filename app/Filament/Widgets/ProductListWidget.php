@@ -2,15 +2,17 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Product;
 use App\Models\ProductModel as DeviceModel;
 use App\Models\Status;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Facades\Cache;
 
 class ProductListWidget extends Widget
 {
     use HasWidgetShield;
+
+    private const CACHE_KEY = 'filament.product-list-widget.stock-models';
 
     protected string $view = 'filament.widgets.product-list-widget';
 
@@ -18,26 +20,36 @@ class ProductListWidget extends Widget
 
     public array $productModelIds = [];
 
-    protected $listeners = ['refreshProductList' => '$refresh'];
+    protected $listeners = ['refreshProductList' => 'refreshProductList'];
 
     public function mount(): void
     {
         $this->loadProductData();
     }
 
+    public function refreshProductList(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+
+        $this->loadProductData();
+    }
+
     private function loadProductData(): void
+    {
+        $data = Cache::remember(self::CACHE_KEY, now()->addMinute(), fn (): array => $this->buildProductData());
+
+        $this->modelGroups = $data['modelGroups'];
+        $this->productModelIds = $data['productModelIds'];
+    }
+
+    /**
+     * @return array{modelGroups: array<int, array{id: int, label: string, models: array<int, array{id: int, name: string}>}>, productModelIds: array<int, int>}
+     */
+    private function buildProductData(): array
     {
         $statusIds = Status::query()
             ->whereIn('name', ['საწყობშია', 'მაღაზიაშია'])
             ->pluck('id');
-
-        $this->productModelIds = Product::query()
-            ->whereNotNull('model_id')
-            ->whereIn('status_id', $statusIds)
-            ->distinct()
-            ->pluck('model_id')
-            ->flip()
-            ->toArray();
 
         $models = DeviceModel::query()
             ->with(['parent:id,name,parent_id'])
@@ -64,7 +76,7 @@ class ProductListWidget extends Widget
 
                 $groupKey = mb_strtoupper($parentName);
 
-                if (!isset($grouped[$groupKey])) {
+                if (! isset($grouped[$groupKey])) {
                     $grouped[$groupKey] = [
                         'id' => $model->parent->id,
                         'label' => $parentName,
@@ -79,7 +91,7 @@ class ProductListWidget extends Widget
             } else {
                 $groupKey = mb_strtoupper($modelName);
 
-                if (!isset($grouped[$groupKey])) {
+                if (! isset($grouped[$groupKey])) {
                     $grouped[$groupKey] = [
                         'id' => $model->id,
                         'label' => $modelName,
@@ -105,7 +117,10 @@ class ProductListWidget extends Widget
 
         unset($group);
 
-        $this->modelGroups = array_values($grouped);
+        return [
+            'modelGroups' => array_values($grouped),
+            'productModelIds' => $models->pluck('id')->flip()->toArray(),
+        ];
     }
 
     public function getHeading(): ?string
