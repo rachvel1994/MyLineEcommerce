@@ -23,21 +23,21 @@ class ConsignmentForm
                     Select::make('customer_id')
                         ->label(__('admin.client'))
                         ->preload()
-                        ->options(User::query()
-                            ->whereHas('roles', fn($q) => $q->where('id', 2))
+                        ->options(fn (): array => User::query()
+                            ->whereHas('roles', fn ($q) => $q->where('id', 2))
                             ->pluck('name', 'id')->toArray())
                         ->searchable()
                         ->native(false)
                         ->required()
-                        ->visible(fn() => canAbility('ViewCustomer:Consignment')),
+                        ->visible(fn () => canAbility('ViewCustomer:Consignment')),
 
                     Select::make('created_by')
                         ->label(__('admin.added_by'))
                         ->relationship('creator', 'name')
-                        ->default(fn() => auth()->id())
+                        ->default(fn () => auth()->id())
                         ->disabled()
                         ->native(false)
-                        ->visible(fn() => canAbility('ViewCreator:Consignment'))
+                        ->visible(fn () => canAbility('ViewCreator:Consignment'))
                         ->dehydrated(),
 
                     DatePicker::make('created_at')
@@ -52,36 +52,36 @@ class ConsignmentForm
                         ->default(0)
                         ->reactive()
                         ->afterStateUpdated(function ($state, $set, $get) {
-                            $subtotal = (float)($get('subtotal') ?? 0);
-                            $debt = max(0, round($subtotal - (float)$state, 2));
+                            $subtotal = (float) ($get('subtotal') ?? 0);
+                            $debt = max(0, round($subtotal - (float) $state, 2));
                             $set('debt', $debt);
                             $set('is_paid', $debt <= 0);
                         })
                         ->debounce(300)
-                        ->visible(fn() => canAbility('ViewPaidAmount:Consignment'))
+                        ->visible(fn () => canAbility('ViewPaidAmount:Consignment'))
                         ->columnSpan(4),
 
                     PriceInput::make('debt')
                         ->label(__('admin.debt'))
                         ->numeric()
                         ->readOnly()
-                        ->visible(fn() => canAbility('ViewDebt:Consignment'))
+                        ->visible(fn () => canAbility('ViewDebt:Consignment'))
                         ->columnSpan(3),
 
                     PriceInput::make('subtotal')
                         ->label(__('admin.total'))
                         ->numeric()
                         ->readOnly()
-                        ->visible(fn() => canAbility('ViewSubtotal:Consignment'))
+                        ->visible(fn () => canAbility('ViewSubtotal:Consignment'))
                         ->columnSpan(4),
 
                     Toggle::make('is_paid')
                         ->label(__('admin.is_paid'))
                         ->inline(false)
                         ->afterStateUpdated(function (
-                            bool         $state,
-                            Set          $set,
-                            Get          $get,
+                            bool $state,
+                            Set $set,
+                            Get $get,
                             ?Consignment $record
                         ) {
                             if ($state) {
@@ -96,7 +96,7 @@ class ConsignmentForm
                             }
                         })
                         ->reactive()
-                        ->visible(fn() => canAbility('ViewIsPaid:Consignment'))
+                        ->visible(fn () => canAbility('ViewIsPaid:Consignment'))
                         ->columnSpan(1),
                 ])->columnSpanFull(),
             ])

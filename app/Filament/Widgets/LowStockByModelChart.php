@@ -19,7 +19,7 @@ class LowStockByModelChart extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query(LowStockByModel::query())
+            ->query(LowStockByModel::query()->with('model'))
             ->defaultSort('total', 'asc')
             ->columns([
                 TextColumn::make('model.name')

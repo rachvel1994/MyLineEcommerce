@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Expenses\Schemas;
 
-
 use App\Forms\Components\PriceInput;
 use App\Models\ExpenseType;
 use Filament\Forms\Components\DateTimePicker;
@@ -20,7 +19,7 @@ class ExpenseForm
                 Grid::make(4)->schema([
                     Select::make('expense_type_id')
                         ->label(__('admin.type'))
-                        ->options(toArray(ExpenseType::class))
+                        ->options(fn (): array => toArray(ExpenseType::class))
                         ->searchable()
                         ->native(false)
                         ->preload()

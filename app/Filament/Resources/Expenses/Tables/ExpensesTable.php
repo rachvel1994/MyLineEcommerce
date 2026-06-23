@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Expenses\Tables;
 
-use App\Models\ExpenseType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -13,12 +12,14 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class ExpensesTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['type', 'user']))
             ->columns([
                 TextColumn::make('spent_at')
                     ->label(__('admin.date'))
@@ -59,13 +60,16 @@ class ExpensesTable
                             ->label(__('admin.to_date')),
                     ])
                     ->query(function (Builder $query, array $data) {
+                        $from = filled($data['from'] ?? null) ? Carbon::parse($data['from'])->startOfDay() : null;
+                        $until = filled($data['until'] ?? null) ? Carbon::parse($data['until'])->endOfDay() : null;
+
                         return $query
-                            ->when($data['from'] ?? null, fn($q, $from) => $q->whereDate('spent_at', '>=', $from))
-                            ->when($data['until'] ?? null, fn($q, $until) => $q->whereDate('spent_at', '<=', $until));
+                            ->when($from, fn (Builder $query, Carbon $date) => $query->where('spent_at', '>=', $date))
+                            ->when($until, fn (Builder $query, Carbon $date) => $query->where('spent_at', '<=', $date));
                     }),
 
                 SelectFilter::make('expense_type_id')
-                    ->options(toArray(ExpenseType::class))
+                    ->relationship('type', 'name')
                     ->label(__('admin.type'))
                     ->searchable()
                     ->preload(),

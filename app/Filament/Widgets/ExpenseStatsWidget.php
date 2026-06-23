@@ -11,13 +11,16 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Grid;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Carbon;
 
 class ExpenseStatsWidget extends Widget implements HasForms
 {
-    use InteractsWithForms, HasWidgetShield;
+    use HasWidgetShield, InteractsWithForms;
 
     protected string $view = 'filament.widgets.expense-stats-widget';
+
     protected int|string|array $columnSpan = 'full';
+
     protected static bool $isLazy = true;
 
     public ?array $filters = [];
@@ -37,15 +40,12 @@ class ExpenseStatsWidget extends Widget implements HasForms
         ];
     }
 
-
     protected function getFormStatePath(): ?string
     {
         return 'filters';
     }
 
-    public function applyFilters(): void
-    {
-    }
+    public function applyFilters(): void {}
 
     public function resetFilters(): void
     {
@@ -58,26 +58,28 @@ class ExpenseStatsWidget extends Widget implements HasForms
 
     public function getStats(): array
     {
-        $from = $this->filters['from_date'] ?? now()->startOfMonth()->startOfDay();
-        $to = $this->filters['to_date'] ?? now()->endOfMonth()->endOfDay();
+        $from = filled($this->filters['from_date'] ?? null)
+            ? Carbon::parse($this->filters['from_date'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+        $to = filled($this->filters['to_date'] ?? null)
+            ? Carbon::parse($this->filters['to_date'])->endOfDay()
+            : now()->endOfMonth()->endOfDay();
 
         $base = Expense::query()
-            ->when($from, fn ($q) => $q->whereDate('spent_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('spent_at', '<=', $to));
+            ->whereBetween('spent_at', [$from, $to]);
 
         $total = (clone $base)->sum('amount') ?? 0;
 
         $byType = ExpenseType::query()
             ->withSum(['expenses as sum_amount' => function ($q) use ($from, $to) {
-                $q->when($from, fn ($qq) => $qq->whereDate('spent_at', '>=', $from))
-                    ->when($to, fn ($qq) => $qq->whereDate('spent_at', '<=', $to));
+                $q->whereBetween('spent_at', [$from, $to]);
             }], 'amount')
             ->orderByDesc('sum_amount')
             ->get()
             ->map(fn ($t) => [
                 'label' => $t->name,
                 'value' => money($t->sum_amount ?? 0),
-                'icon' =>  Heroicon::Tag,
+                'icon' => Heroicon::Tag,
             ])
             ->toArray();
 

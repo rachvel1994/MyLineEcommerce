@@ -28,7 +28,7 @@ class AccessoryForm
                         ->label(__('admin.category'))
                         ->searchable()
                         ->native(false)
-                        ->options(toArray(Category::class)),
+                        ->options(fn (): array => toArray(Category::class)),
                     PriceInput::make('price')
                         ->default(null)
                         ->label(__('admin.self_price')),

@@ -46,18 +46,18 @@ class ProductForm
                                         ->unique(ignoreRecord: true)
                                         ->required()
                                         ->maxLength(255)
-                                        ->visible(fn() => canAbility('CanViewSku:Product')),
+                                        ->visible(fn () => canAbility('CanViewSku:Product')),
 
                                     Select::make('model_id')
                                         ->label(__('admin.model'))
-                                        ->options(toArray(ProductModel::class))
+                                        ->options(fn (): array => toArray(ProductModel::class))
                                         ->native(false)
                                         ->searchable()
                                         ->required(),
 
                                     Select::make('category_id')
                                         ->label(__('admin.category'))
-                                        ->options(toArray(Category::class))
+                                        ->options(fn (): array => toArray(Category::class))
                                         ->native(false)
                                         ->searchable()
                                         ->required(),
@@ -75,61 +75,61 @@ class ProductForm
                                             ->default(0)
                                             ->lazy()
                                             ->label(__('admin.self_price'))
-                                            ->visible(fn() => canAbility('CanViewPrice:Product'))
-                                            ->dehydrated(fn() => canAbility('CanViewPrice:Product')),
+                                            ->visible(fn () => canAbility('CanViewPrice:Product'))
+                                            ->dehydrated(fn () => canAbility('CanViewPrice:Product')),
 
                                         PriceInput::make('retail_price')
                                             ->label(__('admin.retail_price'))
                                             ->lazy()
-                                            ->visible(fn() => canAbility('CanViewRetailPrice:Product'))
-                                            ->dehydrated(fn() => canAbility('CanViewRetailPrice:Product')),
+                                            ->visible(fn () => canAbility('CanViewRetailPrice:Product'))
+                                            ->dehydrated(fn () => canAbility('CanViewRetailPrice:Product')),
 
                                         PriceInput::make('sale_price')
                                             ->label(__('admin.sale_price'))
                                             ->lazy()
-                                            ->visible(fn() => canAbility('CanViewSalePrice:Product'))
-                                            ->dehydrated(fn() => canAbility('CanViewSalePrice:Product')),
+                                            ->visible(fn () => canAbility('CanViewSalePrice:Product'))
+                                            ->dehydrated(fn () => canAbility('CanViewSalePrice:Product')),
 
                                         Select::make('battery_id')
                                             ->label(__('admin.battery'))
-                                            ->options(toArray(Battery::class))
+                                            ->options(fn (): array => toArray(Battery::class))
                                             ->searchable()
                                             ->native(false)
-                                            ->visible(fn() => canAbility('CanViewBattery:Product')),
+                                            ->visible(fn () => canAbility('CanViewBattery:Product')),
 
                                         Select::make('color_id')
                                             ->label(__('admin.color'))
-                                            ->options(toArray(Color::class))
+                                            ->options(fn (): array => toArray(Color::class))
                                             ->searchable()
                                             ->native(false)
-                                            ->visible(fn() => canAbility('CanViewColor:Product')),
+                                            ->visible(fn () => canAbility('CanViewColor:Product')),
 
                                         Select::make('storage_id')
                                             ->label(__('admin.storage'))
-                                            ->options(toArray(Storage::class))
+                                            ->options(fn (): array => toArray(Storage::class))
                                             ->searchable()
                                             ->required()
                                             ->native(false)
-                                            ->visible(fn() => canAbility('CanViewStorage:Product')),
+                                            ->visible(fn () => canAbility('CanViewStorage:Product')),
 
                                         Grid::make(3)->schema([
                                             Toggle::make('is_repaired')
                                                 ->label(__('admin.is_repaired'))
                                                 ->required()
-                                                ->visible(fn() => canAbility('CanViewIsRepaired:Product'))
-                                                ->dehydrated(fn() => canAbility('CanViewIsRepaired:Product')),
+                                                ->visible(fn () => canAbility('CanViewIsRepaired:Product'))
+                                                ->dehydrated(fn () => canAbility('CanViewIsRepaired:Product')),
 
                                             Toggle::make('show_repair_information')
                                                 ->label(__('admin.show_repair_information'))
                                                 ->required()
-                                                ->visible(fn() => canAbility('CanViewShowRepairedInformation:Product'))
-                                                ->dehydrated(fn() => canAbility('CanViewShowRepairedInformation:Product')),
+                                                ->visible(fn () => canAbility('CanViewShowRepairedInformation:Product'))
+                                                ->dehydrated(fn () => canAbility('CanViewShowRepairedInformation:Product')),
 
                                             Toggle::make('need_reset')
                                                 ->label(__('admin.need_reset'))
                                                 ->required()
-                                                ->visible(fn() => canAbility('CanViewNeedReset:Product'))
-                                                ->dehydrated(fn() => canAbility('CanViewNeedReset:Product')),
+                                                ->visible(fn () => canAbility('CanViewNeedReset:Product'))
+                                                ->dehydrated(fn () => canAbility('CanViewNeedReset:Product')),
                                         ])->columnSpanFull(),
 
                                         Select::make('repair_information_id')
@@ -141,24 +141,24 @@ class ProductForm
                                             ->preload()
                                             ->columnSpanFull()
                                             ->dehydrated(true)
-                                            ->visible(fn() => canAbility('CanViewShowRepairedInformation:Product')),
+                                            ->visible(fn () => canAbility('CanViewShowRepairedInformation:Product')),
 
                                         Grid::make()->schema([
                                             Select::make('status_id')
                                                 ->label(__('admin.status'))
-                                                ->options(Status::query()->orderBy('sort_order')->pluck('name', 'id'))
+                                                ->options(fn () => Status::query()->orderBy('sort_order')->pluck('name', 'id')->toArray())
                                                 ->native(false)
                                                 ->searchable()
                                                 ->required()
-                                                ->visible(fn() => canAbility('CanViewStatus:Product')),
+                                                ->visible(fn () => canAbility('CanViewStatus:Product')),
 
                                             Select::make('condition_id')
                                                 ->label(__('admin.condition'))
-                                                ->options(toArray(Condition::class))
+                                                ->options(fn (): array => toArray(Condition::class))
                                                 ->native(false)
                                                 ->searchable()
                                                 ->required()
-                                                ->visible(fn() => canAbility('CanViewCondition:Product')),
+                                                ->visible(fn () => canAbility('CanViewCondition:Product')),
                                         ])->columnSpanFull(),
 
                                         FileUpload::make('images')
@@ -174,7 +174,7 @@ class ProductForm
                                             ->columnSpanFull()
                                             ->label(__('admin.comment'))
                                             ->rows(5)
-                                            ->visible(fn() => canAbility('CanViewComment:Product')),
+                                            ->visible(fn () => canAbility('CanViewComment:Product')),
 
                                         Textarea::make('service_comment')
                                             ->columnSpanFull()
@@ -182,58 +182,57 @@ class ProductForm
                                             ->visibleOn('create')
                                             ->label(__('admin.service_comment'))
                                             ->rows(5)
-                                            ->visible(fn() => canAbility('CanViewServiceComment:Product')),
-
+                                            ->visible(fn () => canAbility('CanViewServiceComment:Product')),
 
                                     ]),
                             ])
                             ->columnSpanFull(),
 
                         Tabs\Tab::make(__('admin.guarantee'))
-                            ->hidden(fn($record) => empty($record->status_id) || $record->status_id != 4)
+                            ->hidden(fn ($record) => empty($record->status_id) || $record->status_id != 4)
                             ->schema([
                                 Grid::make()
                                     ->schema([
                                         Select::make('guarantee_id')
                                             ->label(__('admin.guarantee'))
-                                            ->options(toArray(Guarantee::class))
+                                            ->options(fn (): array => toArray(Guarantee::class))
                                             ->native(false)
                                             ->searchable()
-                                            ->visible(fn() => canAbility('CanViewGuarantee:Product')),
+                                            ->visible(fn () => canAbility('CanViewGuarantee:Product')),
 
                                         TextInput::make('order_id')
                                             ->label(__('admin.order_id'))
                                             ->maxLength(255)
-                                            ->visible(fn() => canAbility('CanViewOrderId:Product')),
+                                            ->visible(fn () => canAbility('CanViewOrderId:Product')),
 
                                         Grid::make(4)->schema([
                                             Select::make('user_id')
                                                 ->label(__('admin.user'))
-                                                ->options(toArray(User::class))
+                                                ->options(fn (): array => toArray(User::class))
                                                 ->native(false)
                                                 ->searchable()
-                                                ->default(fn() => auth()->id())
-                                                ->visible(fn() => canAbility('CanViewUser:Product')),
+                                                ->default(fn () => auth()->id())
+                                                ->visible(fn () => canAbility('CanViewUser:Product')),
 
                                             Select::make('hear_about_id')
                                                 ->label(__('admin.hear_about'))
-                                                ->options(toArray(HearAbout::class))
+                                                ->options(fn (): array => toArray(HearAbout::class))
                                                 ->native(false)
                                                 ->searchable()
-                                                ->visible(fn() => canAbility('CanViewHearAbout:Product')),
+                                                ->visible(fn () => canAbility('CanViewHearAbout:Product')),
 
                                             Select::make('delivery_id')
                                                 ->label(__('admin.delivery'))
-                                                ->options(toArray(Delivery::class))
+                                                ->options(fn (): array => toArray(Delivery::class))
                                                 ->native(false)
                                                 ->searchable()
-                                                ->visible(fn() => canAbility('CanViewDelivery:Product')),
+                                                ->visible(fn () => canAbility('CanViewDelivery:Product')),
 
                                             Select::make('seller_id')
                                                 ->label(__('admin.seller'))
-                                                ->options(User::query()->whereNot('id', 1)->whereHas('roles', function ($query) {
+                                                ->options(fn () => User::query()->whereNot('id', 1)->whereHas('roles', function ($query) {
                                                     return $query->whereIn('id', [1, 5, 6, 7]);
-                                                })->pluck('name', 'id'))
+                                                })->pluck('name', 'id')->toArray())
                                                 ->native(false)
                                                 ->searchable(),
                                         ])->columnSpanFull(),
@@ -250,7 +249,7 @@ class ProductForm
                                             ->schema([
                                                 Select::make('accessory_id')
                                                     ->label(__('admin.accessory'))
-                                                    ->options(toArray(Accessory::class))
+                                                    ->options(fn (): array => toArray(Accessory::class))
                                                     ->required()
                                                     ->reactive()
                                                     ->searchable(),
@@ -291,7 +290,7 @@ class ProductForm
                                             Select::make('payment_id')
                                                 ->reactive()
                                                 ->label(__('admin.payment'))
-                                                ->options(toArray(Payment::class))
+                                                ->options(fn (): array => toArray(Payment::class))
                                                 ->native(false)
                                                 ->searchable()
                                                 ->required(),

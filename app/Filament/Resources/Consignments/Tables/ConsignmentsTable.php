@@ -17,18 +17,20 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ConsignmentsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['creator', 'customer']))
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('admin.created_at'))
                     ->date()
                     ->extraAttributes(function (Consignment $record) {
-                        return $record->is_paid ? ['style' => "background-color: green"] : ['style' => "background-color: red"];
+                        return $record->is_paid ? ['style' => 'background-color: green'] : ['style' => 'background-color: red'];
                     })
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
@@ -48,26 +50,26 @@ class ConsignmentsTable
                     ->money('GEL', true)
                     ->color('success')
                     ->sortable()
-                    ->visible(fn() => canAbility('ViewPaidAmount:Consignment'))
+                    ->visible(fn () => canAbility('ViewPaidAmount:Consignment'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('debt')
                     ->label(__('admin.debt'))
                     ->money('GEL', true)
                     ->sortable()
                     ->color('danger')
-                    ->visible(fn() => canAbility('ViewDebt:Consignment'))
+                    ->visible(fn () => canAbility('ViewDebt:Consignment'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('subtotal')
                     ->label(__('admin.total'))
                     ->money('GEL', true)
                     ->color('primary')
                     ->sortable()
-                    ->visible(fn() => canAbility('ViewSubtotal:Consignment'))
+                    ->visible(fn () => canAbility('ViewSubtotal:Consignment'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 IconColumn::make('is_paid')
                     ->label(__('admin.is_payed'))
                     ->boolean()
-                    ->visible(fn() => canAbility('ViewIsPaid:Consignment'))
+                    ->visible(fn () => canAbility('ViewIsPaid:Consignment'))
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([
@@ -93,9 +95,9 @@ class ConsignmentsTable
             ->label(__('admin.pay'))
             ->icon(Heroicon::CurrencyDollar)
             ->color('info')
-            ->modalHeading(fn (Consignment $record) => __('admin.consignment') . ' #' . $record->id)
+            ->modalHeading(fn (Consignment $record) => __('admin.consignment').' #'.$record->id)
             ->modalDescription(
-                fn (Consignment $record) => __('admin.current_debt') . ': ' . money($record->debt)
+                fn (Consignment $record) => __('admin.current_debt').': '.money($record->debt)
             )
             ->schema([
                 PriceInput::make('amount')
@@ -104,11 +106,11 @@ class ConsignmentsTable
                     ->minValue(0.01)
                     ->required()
                     ->maxValue(fn (Consignment $record) => $record->debt)
-                    ->helperText(fn (Consignment $record) => __('admin.max') . ': ' . money($record->debt)),
+                    ->helperText(fn (Consignment $record) => __('admin.max').': '.money($record->debt)),
 
                 Select::make('payment_id')
                     ->label(__('admin.payment'))
-                    ->options(toArray(Payment::class))
+                    ->options(fn (): array => toArray(Payment::class))
                     ->searchable()
                     ->required(),
             ])

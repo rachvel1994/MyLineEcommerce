@@ -60,7 +60,7 @@ trait HasProductHeaderActions
             ->color('info')
             ->label(__('admin.excel_export'))
             ->icon(Heroicon::ArrowDownTray)
-            ->visible(fn() => static::canAbility('CanDownloadExcel'))
+            ->visible(fn () => static::canAbility('CanDownloadExcel'))
             ->schema([
                 DatePicker::make('from_date')
                     ->label(__('admin.from_date')),
@@ -71,7 +71,7 @@ trait HasProductHeaderActions
                 Select::make('status_id')
                     ->label(__('admin.status'))
                     ->searchable()
-                    ->options(Status::query()->orderBy('sort_order')->pluck('name', 'id')),
+                    ->options(fn () => Status::query()->orderBy('sort_order')->pluck('name', 'id')->toArray()),
 
                 Select::make('company_id')
                     ->label(__('admin.company'))
@@ -79,9 +79,9 @@ trait HasProductHeaderActions
                     ->options(companies()),
             ])
             ->action(function (array $data) {
-                $query = http_build_query(array_filter($data, fn($value) => filled($value)));
+                $query = http_build_query(array_filter($data, fn ($value) => filled($value)));
 
-                return redirect()->to(route('products.export') . ($query ? '?' . $query : ''));
+                return redirect()->to(route('products.export').($query ? '?'.$query : ''));
             })
             ->openUrlInNewTab();
     }
@@ -91,13 +91,13 @@ trait HasProductHeaderActions
         return Action::make('create_guarantee')
             ->color('success')
             ->icon(Heroicon::UserPlus)
-            ->visible(fn() => static::canAbility('CanCreateGuarantee'))
+            ->visible(fn () => static::canAbility('CanCreateGuarantee'))
             ->label(__('admin.create_guarantee'))
             ->schema(function () {
                 $normalizeItems = function (array $items): array {
                     foreach ($items as $i => $row) {
-                        $price = (float)($row['price'] ?? 0);
-                        $qty = max(1, (int)($row['quantity'] ?? 1));
+                        $price = (float) ($row['price'] ?? 0);
+                        $qty = max(1, (int) ($row['quantity'] ?? 1));
 
                         $items[$i]['price'] = $price;
                         $items[$i]['quantity'] = $qty;
@@ -110,20 +110,20 @@ trait HasProductHeaderActions
                 $recalculateTotalsFromItems = function (Get $get, Set $set, array $items, string $prefix = '') use ($normalizeItems): float {
                     $items = $normalizeItems($items);
 
-                    $basePrice = (float)($get($prefix . 'price') ?? 0);
-                    $accTotal = round(collect($items)->sum(fn($row) => (float)($row['total_price'] ?? 0)), 2);
+                    $basePrice = (float) ($get($prefix.'price') ?? 0);
+                    $accTotal = round(collect($items)->sum(fn ($row) => (float) ($row['total_price'] ?? 0)), 2);
                     $grandTotal = round($basePrice + $accTotal, 2);
 
-                    $set($prefix . 'items', $items);
-                    $set($prefix . 'accessories_total', $accTotal);
-                    $set($prefix . 'product_price', $basePrice);
-                    $set($prefix . 'grand_total', $grandTotal);
+                    $set($prefix.'items', $items);
+                    $set($prefix.'accessories_total', $accTotal);
+                    $set($prefix.'product_price', $basePrice);
+                    $set($prefix.'grand_total', $grandTotal);
 
                     return $grandTotal;
                 };
 
                 $scalePaymentsFromTotal = function (Set $set, Get $get, float $grandTotal, string $prefix = ''): void {
-                    $payments = $get($prefix . 'payments') ?? [];
+                    $payments = $get($prefix.'payments') ?? [];
 
                     if (count($payments) === 0) {
                         return;
@@ -139,7 +139,7 @@ trait HasProductHeaderActions
                             continue;
                         }
 
-                        $price = round((float)($payment['price'] ?? $payment['amount'] ?? 0), 2);
+                        $price = round((float) ($payment['price'] ?? $payment['amount'] ?? 0), 2);
 
                         if ($price > 0) {
                             $hasCustomOthers = true;
@@ -156,31 +156,31 @@ trait HasProductHeaderActions
                         foreach ($payments as $key => &$payment) {
                             $payment['price'] = $key === $firstKey
                                 ? $remainder
-                                : round((float)($payment['price'] ?? $payment['amount'] ?? 0), 2);
+                                : round((float) ($payment['price'] ?? $payment['amount'] ?? 0), 2);
 
-                            $payment['amount'] = (float)$payment['price'];
+                            $payment['amount'] = (float) $payment['price'];
                         }
                         unset($payment);
 
-                        $set($prefix . 'payments', $payments);
+                        $set($prefix.'payments', $payments);
 
                         return;
                     }
 
                     foreach ($payments as $key => &$payment) {
                         $payment['price'] = $key === $firstKey ? round($grandTotal, 2) : 0.0;
-                        $payment['amount'] = (float)$payment['price'];
+                        $payment['amount'] = (float) $payment['price'];
                     }
                     unset($payment);
 
-                    $set($prefix . 'payments', $payments);
+                    $set($prefix.'payments', $payments);
                 };
 
                 $recalculateAll = function (Get $get, Set $set, ?array $itemsState = null, string $prefix = '') use (
                     $recalculateTotalsFromItems,
                     $scalePaymentsFromTotal
                 ): void {
-                    $items = $itemsState ?? ($get($prefix . 'items') ?? []);
+                    $items = $itemsState ?? ($get($prefix.'items') ?? []);
                     $grandTotal = $recalculateTotalsFromItems($get, $set, $items, $prefix);
 
                     $scalePaymentsFromTotal($set, $get, $grandTotal, $prefix);
@@ -196,7 +196,7 @@ trait HasProductHeaderActions
                                         ->required()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, $state, Get $get) use ($recalculateAll) {
-                                            $sku = trim((string)$state);
+                                            $sku = trim((string) $state);
 
                                             if ($sku === '') {
                                                 return;
@@ -225,33 +225,33 @@ trait HasProductHeaderActions
                                                 ->where('status_id', '!=', 4)
                                                 ->first();
 
-                                            if (!$product) {
+                                            if (! $product) {
                                                 Notification::make()
                                                     ->title(__('admin.product_not_found_or_sold'))
                                                     ->danger()
                                                     ->send();
 
                                                 foreach ([
-                                                             'order_id',
-                                                             'product_name',
-                                                             'price',
-                                                             'guarantee_id',
-                                                             'delivery_id',
-                                                             'hear_about_id',
-                                                             'need_reset',
-                                                             'mobile',
-                                                             'name',
-                                                             'is_legal_entity',
-                                                             'id_number',
-                                                             'repair_information_id',
-                                                             'items',
-                                                             'payments',
-                                                             'accessories_total',
-                                                             'product_price',
-                                                             'grand_total',
-                                                             'user_id',
-                                                             'seller_id',
-                                                         ] as $field) {
+                                                    'order_id',
+                                                    'product_name',
+                                                    'price',
+                                                    'guarantee_id',
+                                                    'delivery_id',
+                                                    'hear_about_id',
+                                                    'need_reset',
+                                                    'mobile',
+                                                    'name',
+                                                    'is_legal_entity',
+                                                    'id_number',
+                                                    'repair_information_id',
+                                                    'items',
+                                                    'payments',
+                                                    'accessories_total',
+                                                    'product_price',
+                                                    'grand_total',
+                                                    'user_id',
+                                                    'seller_id',
+                                                ] as $field) {
                                                     $set(
                                                         $field,
                                                         in_array($field, ['items', 'payments', 'repair_information_id'], true)
@@ -271,11 +271,11 @@ trait HasProductHeaderActions
 
                                             $set('order_id', $product->order_id);
                                             $set('product_name', $product->model?->name);
-                                            $set('price', (float)($product->sale_price ?? 0));
+                                            $set('price', (float) ($product->sale_price ?? 0));
                                             $set('guarantee_id', $product->guarantee_id);
                                             $set('delivery_id', $product->delivery_id);
                                             $set('hear_about_id', $product->hear_about_id);
-                                            $set('need_reset', (bool)$product->need_reset);
+                                            $set('need_reset', (bool) $product->need_reset);
                                             $set('repair_information_id', $product->information->pluck('id')->toArray());
 
                                             $set('items', []);
@@ -291,7 +291,7 @@ trait HasProductHeaderActions
                                         ->label(__('admin.mobile'))
                                         ->live(debounce: 900)
                                         ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                            $mobile = preg_replace('/\s+/', '', trim((string)$state));
+                                            $mobile = preg_replace('/\s+/', '', trim((string) $state));
 
                                             if ($mobile === '') {
                                                 return;
@@ -305,7 +305,7 @@ trait HasProductHeaderActions
                                                 ->where('mobile', $mobile)
                                                 ->first();
 
-                                            if (!$user) {
+                                            if (! $user) {
                                                 $set('user_id', null);
 
                                                 return;
@@ -317,7 +317,6 @@ trait HasProductHeaderActions
                                             $set('rating', $user->rating);
                                             $set('comment', $user->comment);
                                             $set('paid_products_count', $user->products_count);
-
 
                                             $isCompany = method_exists($user, 'hasRole')
                                                 ? $user->hasRole('კომპანია')
@@ -347,7 +346,7 @@ trait HasProductHeaderActions
                                         ->default(null)
                                         ->lazy()
                                         ->afterStateUpdated(function ($state, Set $set, Get $get) use ($recalculateAll) {
-                                            $set('price', (float)($state ?: 0));
+                                            $set('price', (float) ($state ?: 0));
                                             $recalculateAll($get, $set, null, '');
                                         }),
 
@@ -361,17 +360,17 @@ trait HasProductHeaderActions
                                         ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                             $userId = $get('user_id');
 
-                                            if (!$userId) {
+                                            if (! $userId) {
                                                 return;
                                             }
 
                                             $user = User::query()->find($userId);
 
-                                            if (!$user) {
+                                            if (! $user) {
                                                 return;
                                             }
 
-                                            $roleName = ((int)$state === 2) ? 'კომპანია' : 'მომხმარებელი';
+                                            $roleName = ((int) $state === 2) ? 'კომპანია' : 'მომხმარებელი';
                                             $user->assignRole([$roleName]);
                                         }),
 
@@ -380,7 +379,7 @@ trait HasProductHeaderActions
                                             ->label(__('admin.guarantee'))
                                             ->required()
                                             ->searchable()
-                                            ->options(toArray(Guarantee::class)),
+                                            ->options(fn (): array => toArray(Guarantee::class)),
 
                                         Select::make('rating')
                                             ->label(__('admin.rating_select'))
@@ -411,20 +410,20 @@ trait HasProductHeaderActions
                                         ->label(__('admin.repair_information'))
                                         ->multiple()
                                         ->searchable()
-                                        ->options(toArray(RepairInformation::class))
+                                        ->options(fn (): array => toArray(RepairInformation::class))
                                         ->preload()
                                         ->reactive()
                                         ->dehydrated(true),
 
                                     Select::make('hear_about_id')
                                         ->label(__('admin.hear_about'))
-                                        ->options(toArray(HearAbout::class))
+                                        ->options(fn (): array => toArray(HearAbout::class))
                                         ->searchable()
                                         ->required(),
 
                                     Select::make('delivery_id')
                                         ->label(__('admin.delivery'))
-                                        ->options(toArray(Delivery::class))
+                                        ->options(fn (): array => toArray(Delivery::class))
                                         ->searchable()
                                         ->required(),
 
@@ -432,9 +431,9 @@ trait HasProductHeaderActions
                                         ->searchable()
                                         ->required()
                                         ->label(__('admin.seller'))
-                                        ->options(User::query()->whereHas('roles', function ($query) {
+                                        ->options(fn () => User::query()->whereHas('roles', function ($query) {
                                             return $query->whereIn('id', [1, 5, 6, 7]);
-                                        })->pluck('name', 'id'))
+                                        })->pluck('name', 'id')->toArray())
                                         ->default(4),
                                 ]),
                             ]),
@@ -446,7 +445,7 @@ trait HasProductHeaderActions
                                     ->schema([
                                         Select::make('payment_id')
                                             ->label(__('admin.payment'))
-                                            ->options(cache()->remember('payments.options', 3600, fn() => toArray(Payment::class)))
+                                            ->options(fn (): array => cache()->remember('payments.options', 3600, fn () => toArray(Payment::class)))
                                             ->searchable()
                                             ->required()
                                             ->reactive(),
@@ -455,14 +454,14 @@ trait HasProductHeaderActions
                                             ->label(__('admin.price'))
                                             ->lazy()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) use ($scalePaymentsFromTotal) {
-                                                $scalePaymentsFromTotal($set, $get, (float)($get('../../grand_total') ?? 0), '../../');
+                                                $scalePaymentsFromTotal($set, $get, (float) ($get('../../grand_total') ?? 0), '../../');
                                             }),
                                     ])
                                     ->defaultItems(1)
                                     ->columns(2)
                                     ->reactive()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) use ($scalePaymentsFromTotal) {
-                                        $scalePaymentsFromTotal($set, $get, (float)($get('grand_total') ?? 0), '');
+                                        $scalePaymentsFromTotal($set, $get, (float) ($get('grand_total') ?? 0), '');
                                     })
                                     ->columnSpanFull(),
                             ]),
@@ -474,17 +473,17 @@ trait HasProductHeaderActions
                                     ->schema([
                                         Select::make('accessory_id')
                                             ->label(__('admin.accessory'))
-                                            ->options(toArray(Accessory::class))
+                                            ->options(fn (): array => toArray(Accessory::class))
                                             ->required()
                                             ->reactive()
                                             ->searchable()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) use ($recalculateAll) {
                                                 if ($state && ($accessory = Accessory::query()->select(['id', 'sale_price'])->find($state))) {
-                                                    $set('price', (float)$accessory->sale_price);
+                                                    $set('price', (float) $accessory->sale_price);
 
-                                                    $qty = max(1, (int)($get('quantity') ?: 1));
+                                                    $qty = max(1, (int) ($get('quantity') ?: 1));
                                                     $set('quantity', $qty);
-                                                    $set('total_price', round((float)$accessory->sale_price * $qty, 2));
+                                                    $set('total_price', round((float) $accessory->sale_price * $qty, 2));
                                                 }
 
                                                 $recalculateAll($get, $set, null, '../../');
@@ -493,10 +492,10 @@ trait HasProductHeaderActions
                                         PriceInput::make('price')
                                             ->label(__('admin.price'))
                                             ->numeric()
-                                            ->readOnly(fn(Get $get) => (bool)$get('is_gift'))
+                                            ->readOnly(fn (Get $get) => (bool) $get('is_gift'))
                                             ->lazy()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) use ($recalculateAll) {
-                                                $set('price', (float)($state ?: 0));
+                                                $set('price', (float) ($state ?: 0));
                                                 $recalculateAll($get, $set, null, '../../');
                                             }),
 
@@ -506,7 +505,7 @@ trait HasProductHeaderActions
                                             ->minValue(1)
                                             ->lazy()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) use ($recalculateAll) {
-                                                $set('quantity', max(1, (int)($state ?: 1)));
+                                                $set('quantity', max(1, (int) ($state ?: 1)));
                                                 $recalculateAll($get, $set, null, '../../');
                                             }),
 
@@ -522,7 +521,7 @@ trait HasProductHeaderActions
                                             ->live()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) use ($recalculateAll) {
 
-                                                $quantity = max(1, (int)($get('quantity') ?? 1));
+                                                $quantity = max(1, (int) ($get('quantity') ?? 1));
                                                 $accessoryId = $get('accessory_id');
 
                                                 if ($state) {
@@ -534,7 +533,7 @@ trait HasProductHeaderActions
                                                             ->select(['id', 'sale_price'])
                                                             ->find($accessoryId);
 
-                                                        $price = (float)($accessory?->sale_price ?? 0);
+                                                        $price = (float) ($accessory?->sale_price ?? 0);
 
                                                         $set('price', $price);
                                                         $set('total_price', round($price * $quantity, 2));
@@ -607,8 +606,8 @@ trait HasProductHeaderActions
                     ->where('sku', $data['sku'])
                     ->firstOrFail();
 
-                $mobile = preg_replace('/\s+/', '', trim((string)($data['mobile'] ?? '')));
-                $name = trim((string)($data['name'] ?? ''));
+                $mobile = preg_replace('/\s+/', '', trim((string) ($data['mobile'] ?? '')));
+                $name = trim((string) ($data['name'] ?? ''));
                 $rating = $data['rating'];
                 $comment = $data['comment'];
 
@@ -618,12 +617,11 @@ trait HasProductHeaderActions
 
                 $name = $name !== '' ? $name : $mobile;
 
-                $basePrice = (float)($data['price'] ?? 0);
+                $basePrice = (float) ($data['price'] ?? 0);
                 $items = $data['items'] ?? [];
                 $payments = $data['payments'] ?? [];
 
                 $role = $data['is_legal_entity'];
-
 
                 $result = DB::transaction(function () use (
                     $product,
@@ -645,12 +643,12 @@ trait HasProductHeaderActions
                         ? User::query()->find($userId)
                         : User::query()->where('mobile', $mobile)->first();
 
-                    if (!$user) {
+                    if (! $user) {
 
                         $email = "{$mobile}@myline.ge";
 
                         if (User::query()->where('email', $email)->exists()) {
-                            $email = "{$mobile}+" . now()->timestamp . "@myline.ge";
+                            $email = "{$mobile}+".now()->timestamp.'@myline.ge';
                         }
 
                         $user = User::query()->create([
@@ -675,20 +673,20 @@ trait HasProductHeaderActions
 
                     $userId = $user->id;
 
-                    $roleName = ((int)$role === 2) ? 'კომპანია' : 'მომხმარებელი';
+                    $roleName = ((int) $role === 2) ? 'კომპანია' : 'მომხმარებელი';
                     $user->assignRole([$roleName]);
 
                     $normalizedItems = collect($items)
-                        ->filter(fn($item) => !empty($item['accessory_id']))
+                        ->filter(fn ($item) => ! empty($item['accessory_id']))
                         ->map(function ($item) use ($data) {
 
-                            $isGift = (bool)($item['is_gift'] ?? false);
+                            $isGift = (bool) ($item['is_gift'] ?? false);
 
-                            $qty = max(1, (int)($item['quantity'] ?? 1));
+                            $qty = max(1, (int) ($item['quantity'] ?? 1));
 
                             $price = $isGift
                                 ? 0
-                                : (float)($item['price'] ?? 0);
+                                : (float) ($item['price'] ?? 0);
 
                             return [
                                 'accessory_id' => $item['accessory_id'],
@@ -714,20 +712,22 @@ trait HasProductHeaderActions
                     $otherSum = 0.0;
 
                     foreach ($payments as $key => $payment) {
-                        if ($key === $firstKey) continue;
+                        if ($key === $firstKey) {
+                            continue;
+                        }
 
-                        $otherSum += round((float)($payment['price'] ?? 0), 2);
+                        $otherSum += round((float) ($payment['price'] ?? 0), 2);
                     }
 
                     $payments[$firstKey]['price'] = max(0, round($grandTotal - $otherSum, 2));
 
                     $normalizedPayments = collect($payments)
-                        ->filter(fn($payment) => !empty($payment['payment_id']))
-                        ->map(fn($payment) => [
+                        ->filter(fn ($payment) => ! empty($payment['payment_id']))
+                        ->map(fn ($payment) => [
                             'payment_id' => $payment['payment_id'],
                             'order_id' => $data['order_id'],
-                            'amount' => (float)($payment['price'] ?? 0),
-                            'price' => (float)($payment['price'] ?? 0),
+                            'amount' => (float) ($payment['price'] ?? 0),
+                            'price' => (float) ($payment['price'] ?? 0),
                         ])
                         ->values();
 
@@ -750,7 +750,7 @@ trait HasProductHeaderActions
                     $accessoryOrder->payments()->delete();
                     if ($normalizedPayments->isNotEmpty()) {
                         $accessoryOrder->payments()->createMany(
-                            $normalizedPayments->map(fn($payment) => [
+                            $normalizedPayments->map(fn ($payment) => [
                                 'payment_id' => $payment['payment_id'],
                                 'order_id' => $payment['order_id'],
                                 'amount' => $payment['amount'],
@@ -761,7 +761,7 @@ trait HasProductHeaderActions
                     $product->payments()->delete();
                     if ($normalizedPayments->isNotEmpty()) {
                         $product->payments()->createMany(
-                            $normalizedPayments->map(fn($payment) => [
+                            $normalizedPayments->map(fn ($payment) => [
                                 'payment_id' => $payment['payment_id'],
                                 'order_id' => $payment['order_id'],
                                 'price' => $payment['price'],
@@ -776,7 +776,7 @@ trait HasProductHeaderActions
                         'guarantee_id' => $data['guarantee_id'] ?? null,
                         'status_id' => 4,
                         'seller_id' => $data['seller_id'],
-                        'need_reset' => (bool)($data['need_reset'] ?? false),
+                        'need_reset' => (bool) ($data['need_reset'] ?? false),
                         'hear_about_id' => $data['hear_about_id'] ?? null,
                         'delivery_id' => $data['delivery_id'] ?? null,
                         'created_at' => now(),
@@ -784,7 +784,7 @@ trait HasProductHeaderActions
 
                     $repairInformationIds = collect($data['repair_information_id'] ?? [])
                         ->filter()
-                        ->map(fn($id) => (int)$id)
+                        ->map(fn ($id) => (int) $id)
                         ->unique()
                         ->values()
                         ->all();
@@ -800,10 +800,9 @@ trait HasProductHeaderActions
                 app(ProductPaymentCashDrawerService::class)
                     ->syncProductPayments($result['product_id']);
 
-
                 GenerateGuaranteePdfAndSendMailJob::dispatch($result['product_id']);
 
-                $livewire->js("window.open('" . route('pdf.guarantee', [$result['product_id'], 'lang' => $data['lang']]) . "', '_blank')");
+                $livewire->js("window.open('".route('pdf.guarantee', [$result['product_id'], 'lang' => $data['lang']])."', '_blank')");
 
                 Notification::make()
                     ->title(__('admin.guarantee_created_successfully'))

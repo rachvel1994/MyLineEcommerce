@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductStatsWidget extends BaseWidget
 {
-    use HasWidgetShield, HasFiltersSchema;
+    use HasFiltersSchema, HasWidgetShield;
 
     protected ?string $pollingInterval = '10s';
 
@@ -47,14 +47,14 @@ class ProductStatsWidget extends BaseWidget
 
     private function startDate(): CarbonInterface
     {
-        return !empty($this->filterFormData['start_date'])
+        return ! empty($this->filterFormData['start_date'])
             ? Carbon::parse($this->filterFormData['start_date'])->startOfDay()
             : now()->startOfMonth()->startOfDay();
     }
 
     private function endDate(): CarbonInterface
     {
-        return !empty($this->filterFormData['end_date'])
+        return ! empty($this->filterFormData['end_date'])
             ? Carbon::parse($this->filterFormData['end_date'])->endOfDay()
             : now()->endOfMonth()->endOfDay();
     }
@@ -83,20 +83,19 @@ class ProductStatsWidget extends BaseWidget
         $serviceExpense = ServiceRepairHistory::query()->whereBetween('created_at', [$startDate, $endDate])
             ->sum('repair_price');
 
+        $cashPaymentIds = Payment::query()
+            ->where('is_cash_analytic', true)
+            ->pluck('id')
+            ->toArray();
+
         $cash = DB::table('product_payments')
-            ->whereIn(
-                'payment_id',
-                Payment::query()->where('is_cash_analytic', true)->pluck('id')->toArray()
-            )
+            ->whereIn('payment_id', $cashPaymentIds)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->sum('price');
 
         $consignmentCash = ConsignmentPriceChange::query()
-            ->whereIn(
-                'payment_id',
-                Payment::query()->where('is_cash_analytic', true)->pluck('id')->toArray()
-            )
-            ->whereBetween('created_at', [$startDate, $endDate]) 
+            ->whereIn('payment_id', $cashPaymentIds)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->sum('paid_amount');
 
         $cash = $cash + $consignmentCash;
@@ -106,21 +105,20 @@ class ProductStatsWidget extends BaseWidget
         // DAILY / WEEKLY / MONTHLY
         // =========================
         $dailySales = Product::sold()
-            ->whereDate('created_at', today()->startOfDay())
+            ->whereBetween('created_at', [today()->startOfDay(), today()->endOfDay()])
             ->sum('sale_price');
-
 
         $thisMonthSales = Product::sold()
             ->whereBetween('created_at', [
                 now()->startOfMonth()->startOfDay(),
-                now()->endOfMonth()->endOfDay()
+                now()->endOfMonth()->endOfDay(),
             ])
             ->sum('sale_price');
 
         $thisYearSales = Product::sold()
             ->whereBetween('created_at', [
                 now()->startOfYear()->startOfDay(),
-                now()->endOfYear()->endOfDay()
+                now()->endOfYear()->endOfDay(),
             ])
             ->sum('sale_price');
 
@@ -137,16 +135,16 @@ class ProductStatsWidget extends BaseWidget
         $endOfLastWeek = now()->copy()->subWeek()->endOfWeek();
 
         $sales = Product::sold()
-            ->selectRaw("
+            ->selectRaw('
                 SUM(CASE 
                     WHEN created_at BETWEEN ? AND ? THEN sale_price 
                     ELSE 0 END) as this_week,
                 SUM(CASE 
                     WHEN created_at BETWEEN ? AND ? THEN sale_price 
                     ELSE 0 END) as last_week
-            ", [
+            ', [
                 $startOfThisWeek, $endOfThisWeek,
-                $startOfLastWeek, $endOfLastWeek
+                $startOfLastWeek, $endOfLastWeek,
             ])
             ->first();
 
@@ -157,16 +155,15 @@ class ProductStatsWidget extends BaseWidget
         $lastMonthSales = Product::sold()
             ->whereBetween('created_at', [
                 now()->subMonth()->startOfMonth()->startOfDay(),
-                now()->subMonth()->endOfMonth()->endOfDay()
+                now()->subMonth()->endOfMonth()->endOfDay(),
             ])
             ->sum('sale_price');
-
 
         // Year
         $lastYearSales = Product::sold()
             ->whereBetween('created_at', [
                 now()->subYear()->startOfYear(),
-                now()->subYear()->endOfYear()
+                now()->subYear()->endOfYear(),
             ])
             ->sum('sale_price');
 
@@ -221,27 +218,27 @@ class ProductStatsWidget extends BaseWidget
                 ->icon(Heroicon::CalendarDays)
                 ->color($lastWeekSales <= $weeklySales ? 'success' : 'danger')
                 ->description(
-                    ($lastWeekSales <= $weeklySales ? '+' : '') . money($lastWeekSales) . __('admin.vs_last_week')
+                    ($lastWeekSales <= $weeklySales ? '+' : '').money($lastWeekSales).__('admin.vs_last_week')
                 ),
 
             Stat::make(__('admin.monthly_sales'), money($thisMonthSales))
                 ->icon(Heroicon::Calendar)
                 ->description(
-                    ($lastMonthSales <= $thisMonthSales ? '+' : '') . money($lastMonthSales) . __('admin.vs_last_month')
+                    ($lastMonthSales <= $thisMonthSales ? '+' : '').money($lastMonthSales).__('admin.vs_last_month')
                 )
                 ->color($lastMonthSales <= $thisMonthSales ? 'success' : 'danger'),
 
             Stat::make(__('admin.yearly_sales'), money($thisYearSales))
                 ->icon(Heroicon::ChartPie)
                 ->description(
-                    ($lastYearSales <= $thisYearSales ? '+' : '') . money($lastYearSales) . __('admin.vs_last_year')
+                    ($lastYearSales <= $thisYearSales ? '+' : '').money($lastYearSales).__('admin.vs_last_year')
                 )
                 ->color($lastYearSales <= $thisYearSales ? 'success' : 'danger'),
 
             // YOY (FIXED)
             Stat::make(__('admin.yoy_same_month'), money($thisYearSameMonth))
                 ->icon(Heroicon::Scale)
-                ->description(money($lastYearSameMonth) . __('admin.vs_last_year_same_month'))
+                ->description(money($lastYearSameMonth).__('admin.vs_last_year_same_month'))
                 ->color($lastYearSameMonth <= $thisYearSameMonth ? 'success' : 'danger'),
         ];
     }

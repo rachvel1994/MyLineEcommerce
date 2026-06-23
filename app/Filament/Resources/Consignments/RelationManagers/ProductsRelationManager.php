@@ -88,7 +88,7 @@ class ProductsRelationManager extends RelationManager
                                     $sku = trim((string) $record->sku);
                                     $modelName = trim((string) $record->model?->name);
 
-                                    return trim($modelName . ($sku !== '' ? " — {$sku}" : ''));
+                                    return trim($modelName.($sku !== '' ? " — {$sku}" : ''));
                                 })
                                 ->getSearchResultsUsing(function (string $search): array {
                                     $consignmentId = $this->getOwnerRecord()->getKey();
@@ -121,7 +121,7 @@ class ProductsRelationManager extends RelationManager
                                             $sku = trim((string) $product->sku);
                                             $modelName = trim((string) $product->model?->name);
 
-                                            $label = trim($modelName . ($sku !== '' ? " — {$sku}" : ''));
+                                            $label = trim($modelName.($sku !== '' ? " — {$sku}" : ''));
 
                                             return [$product->getKey() => $label];
                                         })
@@ -130,7 +130,7 @@ class ProductsRelationManager extends RelationManager
                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                     $product = Product::with(['model', 'battery', 'color', 'condition'])->find($state);
 
-                                    if (!$product) {
+                                    if (! $product) {
                                         $set('model_name', null);
                                         $set('sku', null);
                                         $set('battery_id', null);
@@ -169,7 +169,7 @@ class ProductsRelationManager extends RelationManager
 
                                 Select::make('battery_id')
                                     ->label(__('admin.battery'))
-                                    ->options(toArray(Battery::class))
+                                    ->options(fn (): array => toArray(Battery::class))
                                     ->searchable()
                                     ->native(false)
                                     ->disabled()
@@ -179,7 +179,7 @@ class ProductsRelationManager extends RelationManager
                                     ->label(__('admin.color'))
                                     ->searchable()
                                     ->native(false)
-                                    ->options(toArray(Color::class))
+                                    ->options(fn (): array => toArray(Color::class))
                                     ->disabled()
                                     ->dehydrated(false),
 
@@ -187,7 +187,7 @@ class ProductsRelationManager extends RelationManager
                                     ->label(__('admin.condition'))
                                     ->searchable()
                                     ->native(false)
-                                    ->options(toArray(Condition::class))
+                                    ->options(fn (): array => toArray(Condition::class))
                                     ->disabled()
                                     ->dehydrated(false),
 
@@ -212,14 +212,14 @@ class ProductsRelationManager extends RelationManager
                     ->after(function (RelationManager $livewire, array $data, ?Product $record = null) {
                         $productIds = static::getAttachedProductIds($data, $record);
 
-                        if (!empty($productIds)) {
+                        if (! empty($productIds)) {
                             Product::query()
                                 ->whereIn('id', $productIds)
                                 ->update([
                                     'status_id' => 4,
                                     'user_id' => $livewire->getOwnerRecord()->customer_id,
                                     'seller_id' => auth()->id(),
-                                    'created_at' => now()
+                                    'created_at' => now(),
                                 ]);
                         }
 
@@ -252,7 +252,7 @@ class ProductsRelationManager extends RelationManager
 
                                 Select::make('battery_id')
                                     ->label(__('admin.battery'))
-                                    ->options(toArray(Battery::class))
+                                    ->options(fn (): array => toArray(Battery::class))
                                     ->default($record->battery_id ?? null)
                                     ->disabled()
                                     ->native(false)
@@ -260,7 +260,7 @@ class ProductsRelationManager extends RelationManager
 
                                 Select::make('color_id')
                                     ->label(__('admin.color'))
-                                    ->options(toArray(Color::class))
+                                    ->options(fn (): array => toArray(Color::class))
                                     ->default($record->color_id ?? null)
                                     ->disabled()
                                     ->native(false)
@@ -268,7 +268,7 @@ class ProductsRelationManager extends RelationManager
 
                                 Select::make('condition_id')
                                     ->label(__('admin.condition'))
-                                    ->options(toArray(Condition::class))
+                                    ->options(fn (): array => toArray(Condition::class))
                                     ->default($record->condition_id ?? null)
                                     ->disabled()
                                     ->native(false)
@@ -300,7 +300,7 @@ class ProductsRelationManager extends RelationManager
                             array_flip(['unit_price', 'qty', 'line_total'])
                         );
 
-                        if (!empty($allowed)) {
+                        if (! empty($allowed)) {
                             $record->pivot->update($allowed);
                         }
 
@@ -342,10 +342,10 @@ class ProductsRelationManager extends RelationManager
             ->icon(Heroicon::CurrencyDollar)
             ->color('info')
             ->modalHeading(
-                fn (RelationManager $livewire) => __('admin.consignment') . ' #' . ($livewire->getOwnerRecord()->id ?? '')
+                fn (RelationManager $livewire) => __('admin.consignment').' #'.($livewire->getOwnerRecord()->id ?? '')
             )
             ->modalDescription(
-                fn (RelationManager $livewire) => __('admin.current_debt') . ': ' . money($livewire->getOwnerRecord()->debt ?? 0)
+                fn (RelationManager $livewire) => __('admin.current_debt').': '.money($livewire->getOwnerRecord()->debt ?? 0)
             )
             ->schema([
                 PriceInput::make('amount')
@@ -355,20 +355,20 @@ class ProductsRelationManager extends RelationManager
                     ->required()
                     ->maxValue(fn (RelationManager $livewire) => $livewire->getOwnerRecord()->debt ?? 0)
                     ->helperText(
-                        fn (RelationManager $livewire) => __('admin.max') . ': ' .
-                            number_format($livewire->getOwnerRecord()->debt ?? 0, 2) . ' ₾'
+                        fn (RelationManager $livewire) => __('admin.max').': '.
+                            number_format($livewire->getOwnerRecord()->debt ?? 0, 2).' ₾'
                     ),
 
                 Select::make('payment_id')
                     ->label(__('admin.payment'))
-                    ->options(toArray(Payment::class))
+                    ->options(fn (): array => toArray(Payment::class))
                     ->searchable()
                     ->required(),
             ])
             ->action(function (RelationManager $livewire, array $data) {
                 $record = $livewire->getOwnerRecord();
 
-                if (!$record) {
+                if (! $record) {
                     return;
                 }
 
@@ -426,7 +426,7 @@ class ProductsRelationManager extends RelationManager
                             ->pluck('products.id')
                             ->toArray();
 
-                        if (!empty($productIds)) {
+                        if (! empty($productIds)) {
                             Product::query()
                                 ->whereIn('id', $productIds)
                                 ->update([
@@ -443,7 +443,7 @@ class ProductsRelationManager extends RelationManager
     {
         $ownerRecord = $livewire->getOwnerRecord();
 
-        if (!$ownerRecord) {
+        if (! $ownerRecord) {
             return;
         }
 

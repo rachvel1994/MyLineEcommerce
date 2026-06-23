@@ -16,12 +16,12 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class RepairRelationManager extends RelationManager
 {
     protected static string $relationship = 'serviceRepairHistories';
-
 
     public function form(Schema $schema): Schema
     {
@@ -36,6 +36,7 @@ class RepairRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['newStatus', 'oldStatus', 'product.model']))
             ->recordTitleAttribute('product_id')
             ->defaultSort('created_at', 'desc')
             ->columns([
@@ -51,8 +52,7 @@ class RepairRelationManager extends RelationManager
                     ->money('GEL'),
                 TextColumn::make('comment')
                     ->label(__('admin.service_comment'))
-                    ->getStateUsing(fn ($record) =>
-                        $record->comment
+                    ->getStateUsing(fn ($record) => $record->comment
                         ?? strip_tags($record->product?->service_comment)
                     )
                     ->wrap()
@@ -67,7 +67,7 @@ class RepairRelationManager extends RelationManager
                     ->searchable(),
                 ToggleColumn::make('is_paid')
                     ->label(__('admin.is_paid'))
-                    ->visible(fn() => canAbility('CanPay:Service'))
+                    ->visible(fn () => canAbility('CanPay:Service'))
                     ->afterStateUpdated(function ($record, bool $state, $livewire) {
 
                         /** @var Service $service */
@@ -87,7 +87,7 @@ class RepairRelationManager extends RelationManager
 
                         $livewire->dispatch('$refresh');
                         $livewire->dispatch('refreshService');
-                    })
+                    }),
             ])
             ->filters([
                 TernaryFilter::make('is_paid')
@@ -129,7 +129,7 @@ class RepairRelationManager extends RelationManager
             ->headerActions([
                 Action::make('pay_all')
                     ->label(__('admin.pay_all'))
-                    ->visible(fn() => canAbility('CanPayAll:Service'))
+                    ->visible(fn () => canAbility('CanPayAll:Service'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->requiresConfirmation()
@@ -141,7 +141,7 @@ class RepairRelationManager extends RelationManager
                         $totalToAdd = 0;
 
                         foreach ($service->serviceRepairHistories as $repair) {
-                            if (!$repair->is_paid) {
+                            if (! $repair->is_paid) {
                                 $repair->is_paid = true;
                                 $repair->save();
 
@@ -155,12 +155,12 @@ class RepairRelationManager extends RelationManager
 
                         $livewire->dispatch('$refresh');
                         $livewire->dispatch('refreshService');
-                    })
+                    }),
             ])
             ->recordActions([
                 DeleteAction::make()
-                    ->visible(fn() => canAbility('Delete:Service'))
-                    ->disabled(fn() => !canAbility('Delete:Service'))
+                    ->visible(fn () => canAbility('Delete:Service'))
+                    ->disabled(fn () => ! canAbility('Delete:Service'))
                     ->after(function ($livewire) {
                         $livewire->dispatch('$refresh');
                         $livewire->dispatch('refreshService');
@@ -168,9 +168,8 @@ class RepairRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->disabled(fn() => !canAbility('Delete:Service'))
-                    ,
-                ])->visible(fn() => canAbility('Delete:Service')),
+                    DeleteBulkAction::make()->disabled(fn () => ! canAbility('Delete:Service')),
+                ])->visible(fn () => canAbility('Delete:Service')),
             ]);
     }
 

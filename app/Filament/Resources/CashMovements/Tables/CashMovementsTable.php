@@ -5,7 +5,6 @@ namespace App\Filament\Resources\CashMovements\Tables;
 use App\Models\CashMovement;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -13,6 +12,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
 class CashMovementsTable
@@ -22,6 +22,7 @@ class CashMovementsTable
         return $table
             ->query(
                 CashMovement::query()
+                    ->with(['drawer', 'user'])
                     ->orderByDesc('cash_drawer_id')
                     ->orderByDesc('moved_at')
             )
@@ -33,13 +34,13 @@ class CashMovementsTable
                 TextColumn::make('direction')
                     ->label(__('admin.direction'))
                     ->badge()
-                    ->formatStateUsing(fn(string $state) => match ($state) {
+                    ->formatStateUsing(fn (string $state) => match ($state) {
                         'in' => __('admin.in'),
                         'out' => __('admin.out'),
                         'adjust' => __('admin.adjust'),
                         default => $state,
                     })
-                    ->color(fn(string $state) => match ($state) {
+                    ->color(fn (string $state) => match ($state) {
                         'in' => 'success',
                         'out' => 'danger',
                         default => 'gray',
@@ -112,7 +113,7 @@ class CashMovementsTable
                     ->label(__('admin.user'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('drawer.id')
-                    ->label(__('admin.box_office') . ' #')
+                    ->label(__('admin.box_office').' #')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -133,9 +134,9 @@ class CashMovementsTable
                         $until = $until ? Carbon::parse($until)->format('Y-m-d') : null;
 
                         return $query
-                            ->when($from, fn(Builder $q) => $q->whereDate('moved_at', '>=', $from))
-                            ->when($until, fn(Builder $q) => $q->whereDate('moved_at', '<=', $until));
-                    })
+                            ->when($from, fn (Builder $q) => $q->where('moved_at', '>=', Carbon::parse($from)->startOfDay()))
+                            ->when($until, fn (Builder $q) => $q->where('moved_at', '<=', Carbon::parse($until)->endOfDay()));
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->groups([

@@ -25,7 +25,7 @@ class ProductModelsTable
                 SelectColumn::make('parent_id')
                     ->searchableOptions()
                     ->label(__('admin.parent'))
-                    ->options(toArray(ProductModel::class)),
+                    ->options(fn (): array => toArray(ProductModel::class)),
                 ToggleColumn::make('is_active')
                     ->default(true)
                     ->label(__('admin.is_active'))
@@ -50,7 +50,8 @@ class ProductModelsTable
                 SelectFilter::make('parent_id')
                     ->label(__('admin.parent'))
                     ->searchable()
-                    ->options(ProductModel::query()->whereNull('parent_id')->pluck('name', 'id')),
+                    ->relationship('parent', 'name', fn ($query) => $query->whereNull('parent_id'))
+                    ->preload(),
             ])
             ->recordActions([
                 EditAction::make(),

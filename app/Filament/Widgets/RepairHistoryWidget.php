@@ -10,10 +10,11 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Grid;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Carbon;
 
 class RepairHistoryWidget extends Widget implements HasForms
 {
-    use InteractsWithForms, HasWidgetShield;
+    use HasWidgetShield, InteractsWithForms;
 
     protected string $view = 'filament.widgets.repair-history-widget';
 
@@ -23,12 +24,12 @@ class RepairHistoryWidget extends Widget implements HasForms
 
     public ?array $filters = [];
 
-	protected function getListeners(): array
-	{
-		return [
-			'refreshRepairWidget' => '$refresh',
-		];
-	}
+    protected function getListeners(): array
+    {
+        return [
+            'refreshRepairWidget' => '$refresh',
+        ];
+    }
 
     /**
      * FILTER FORM
@@ -79,12 +80,15 @@ class RepairHistoryWidget extends Widget implements HasForms
      */
     public function getStats(): array
     {
-        $from = $this->filters['from_date'] ?? now()->startOfMonth()->startOfDay();
-        $to = $this->filters['to_date'] ?? now()->endOfMonth()->endOfDay();
+        $from = filled($this->filters['from_date'] ?? null)
+            ? Carbon::parse($this->filters['from_date'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+        $to = filled($this->filters['to_date'] ?? null)
+            ? Carbon::parse($this->filters['to_date'])->endOfDay()
+            : now()->endOfMonth()->endOfDay();
 
         $base = ServiceRepairHistory::query()
-            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+            ->whereBetween('created_at', [$from, $to]);
 
         $total = (clone $base)->sum('repair_price');
 

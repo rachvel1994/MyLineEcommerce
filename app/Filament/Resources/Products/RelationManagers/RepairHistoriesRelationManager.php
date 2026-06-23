@@ -7,6 +7,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class RepairHistoriesRelationManager extends RelationManager
@@ -23,6 +24,7 @@ class RepairHistoriesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['newStatus', 'oldStatus', 'product.model']))
             ->recordTitleAttribute('product_id')
             ->columns([
                 TextColumn::make('product.model.name')
@@ -35,12 +37,12 @@ class RepairHistoriesRelationManager extends RelationManager
                 TextColumn::make('repair_price')
                     ->label(__('admin.price'))
                     ->money('GEL'),
-               TextColumn::make('comment')
+                TextColumn::make('comment')
                     ->label(__('admin.comment'))
                     ->searchable(), TextColumn::make('product.service_comment')
                     ->label(__('admin.service_comment'))
                     ->searchable(),
-				
+
                 TextColumn::make('oldStatus.name')
                     ->color('danger')
                     ->label(__('admin.old_status'))
@@ -51,7 +53,7 @@ class RepairHistoriesRelationManager extends RelationManager
                     ->searchable(),
                 IconColumn::make('is_paid')
                     ->boolean()
-                    ->label(__('admin.is_paid'))
+                    ->label(__('admin.is_paid')),
             ])
             ->filters([
                 //

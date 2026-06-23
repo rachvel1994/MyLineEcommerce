@@ -8,6 +8,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CashDrawersTable
 {
@@ -16,6 +17,7 @@ class CashDrawersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['closedBy', 'openedBy']))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('opening_balance')
@@ -36,7 +38,7 @@ class CashDrawersTable
 
                 TextColumn::make('openedBy.name')
                     ->label(__('admin.opened_by'))
-                    ->formatStateUsing(fn($state) => $state ?: '—')
+                    ->formatStateUsing(fn ($state) => $state ?: '—')
                     ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('closed_at')
@@ -46,7 +48,7 @@ class CashDrawersTable
 
                 TextColumn::make('closedBy.name')
                     ->label(__('admin.closed_by'))
-                    ->formatStateUsing(fn($state) => $state ?: '—')
+                    ->formatStateUsing(fn ($state) => $state ?: '—')
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([

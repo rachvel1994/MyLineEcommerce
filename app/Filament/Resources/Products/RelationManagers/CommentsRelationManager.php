@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Products\RelationManagers;
 
-use App\Models\ServiceProduct;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -15,12 +14,13 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class CommentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'comments';
-    
+
     protected static ?string $recordTitleAttribute = 'id';
 
     public function form(Schema $schema): Schema
@@ -44,6 +44,7 @@ class CommentsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('author'))
             ->recordTitleAttribute('body')
             ->columns([
                 TextColumn::make('author.name')
@@ -55,7 +56,7 @@ class CommentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                ->label(__('admin.service_comment')),
+                    ->label(__('admin.service_comment')),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -83,25 +84,16 @@ class CommentsRelationManager extends RelationManager
         return __('admin.service_comment');
     }
 
-    /**
-     * @return string|null
-     */
     public static function getPluralModelLabel(): ?string
     {
         return __('admin.service_comment');
     }
 
-    /**
-     * @return string|null
-     */
     public static function getPluralLabel(): ?string
     {
         return __('admin.service_comment');
     }
 
-    /**
-     * @return string|null
-     */
     public static function getModelLabel(): ?string
     {
         return strtolower(__('admin.service_comment'));

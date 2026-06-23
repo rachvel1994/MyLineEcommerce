@@ -43,9 +43,9 @@ class AccessoryOrdersForm
                     Select::make('seller_id')
                         ->searchable()
                         ->label(__('admin.seller'))
-                        ->options(User::query()->whereNot('id', 1)->whereHas('roles', function ($query) {
+                        ->options(fn () => User::query()->whereNot('id', 1)->whereHas('roles', function ($query) {
                             return $query->whereIn('id', [1, 5, 6, 7]);
-                        })->pluck('name', 'id'))
+                        })->pluck('name', 'id')->toArray())
                         ->default(4),
 
                     Select::make('buyer_id')
@@ -103,7 +103,7 @@ class AccessoryOrdersForm
                                     ->relationship('items')
                                     ->schema([
                                         Hidden::make('accessory_order_id')
-                                            ->default(fn(Get $get) => $get('../../order_id'))
+                                            ->default(fn (Get $get) => $get('../../order_id'))
                                             ->dehydrated(true)
                                             ->lazy()
                                             ->required(),
@@ -112,7 +112,7 @@ class AccessoryOrdersForm
                                             ->label(__('admin.accessory'))
                                             ->searchable()
                                             ->native(false)
-                                            ->options(toArray(Accessory::class))
+                                            ->options(fn (): array => toArray(Accessory::class))
                                             ->required()
                                             ->reactive()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
@@ -133,8 +133,8 @@ class AccessoryOrdersForm
                                             ->lazy()
                                             ->readOnly(fn (Get $get) => (bool) $get('is_gift'))
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                $qty = (float)($get('quantity') ?? 1);
-                                                $set('total_price', (float)$state * $qty);
+                                                $qty = (float) ($get('quantity') ?? 1);
+                                                $set('total_price', (float) $state * $qty);
                                                 static::scalePayments($set, $get, '../../');
                                             }),
 
@@ -146,8 +146,8 @@ class AccessoryOrdersForm
                                             ->lazy()
                                             ->minValue(1)
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                $price = (float)($get('price') ?? 0);
-                                                $set('total_price', $price * (float)$state);
+                                                $price = (float) ($get('price') ?? 0);
+                                                $set('total_price', $price * (float) $state);
                                                 static::scalePayments($set, $get, '../../');
                                             }),
 
@@ -208,7 +208,7 @@ class AccessoryOrdersForm
                             ->relationship('payments')
                             ->schema([
                                 Hidden::make('order_id')
-                                    ->default(fn(Get $get) => $get('../../order_id'))
+                                    ->default(fn (Get $get) => $get('../../order_id'))
                                     ->dehydrated(true)
                                     ->lazy()
                                     ->required(),
@@ -217,12 +217,12 @@ class AccessoryOrdersForm
                                     ->native(false)
                                     ->lazy()
                                     ->label(__('admin.payment'))
-                                    ->options(toArray(Payment::class))
+                                    ->options(fn (): array => toArray(Payment::class))
                                     ->searchable()
                                     ->required(),
 
                                 PriceInput::make('amount')
-                                    ->label(__('admin.price'))
+                                    ->label(__('admin.price')),
                             ])
                             ->defaultItems(1)
                             ->columns()
@@ -243,8 +243,8 @@ class AccessoryOrdersForm
 
     private static function scalePayments(Set $set, Get $get, string $prefix = ''): void
     {
-        $items = $get($prefix . 'items') ?? [];
-        $payments = $get($prefix . 'payments') ?? [];
+        $items = $get($prefix.'items') ?? [];
+        $payments = $get($prefix.'payments') ?? [];
 
         $count = count($payments);
         if ($count === 0) {
@@ -252,7 +252,7 @@ class AccessoryOrdersForm
         }
 
         $grandTotal = round(
-            collect($items)->sum(fn($row) => (float)($row['total_price'] ?? 0)),
+            collect($items)->sum(fn ($row) => (float) ($row['total_price'] ?? 0)),
             2
         );
 
@@ -266,7 +266,7 @@ class AccessoryOrdersForm
                 continue;
             }
 
-            $amount = (float)($p['amount'] ?? 0);
+            $amount = (float) ($p['amount'] ?? 0);
 
             if ($amount > 0) {
                 $hasCustomOthers = true;
@@ -287,12 +287,13 @@ class AccessoryOrdersForm
                 if ($key === $firstKey) {
                     $p['amount'] = $remainder;
                 } else {
-                    $p['amount'] = round((float)($p['amount'] ?? 0), 2);
+                    $p['amount'] = round((float) ($p['amount'] ?? 0), 2);
                 }
             }
             unset($p);
 
-            $set($prefix . 'payments', $payments);
+            $set($prefix.'payments', $payments);
+
             return;
         }
 
@@ -301,6 +302,6 @@ class AccessoryOrdersForm
         }
         unset($p);
 
-        $set($prefix . 'payments', $payments);
+        $set($prefix.'payments', $payments);
     }
 }

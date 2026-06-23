@@ -24,22 +24,22 @@ class ServiceForm
                     Select::make('technic_id')
                         ->label(__('admin.technic'))
                         ->preload()
-                        ->options(User::query()
-                            ->whereHas('roles', fn($q) => $q->where('id', 4))
+                        ->options(fn (): array => User::query()
+                            ->whereHas('roles', fn ($q) => $q->where('id', 4))
                             ->pluck('name', 'id')->toArray())
                         ->searchable()
                         ->native(false)
                         ->required()
-                        ->visible(fn() => canAbility('ViewCustomer:Service'))
-                        ->disabled(fn() => !canAbility('ViewCustomer:Service')),
+                        ->visible(fn () => canAbility('ViewCustomer:Service'))
+                        ->disabled(fn () => ! canAbility('ViewCustomer:Service')),
 
                     Select::make('created_by')
                         ->label(__('admin.added_by'))
                         ->relationship('creator', 'name')
-                        ->default(fn() => auth()->id())
+                        ->default(fn () => auth()->id())
                         ->disabled()
                         ->native(false)
-                        ->visible(fn() => canAbility('ViewCreator:Service'))
+                        ->visible(fn () => canAbility('ViewCreator:Service'))
                         ->dehydrated(),
 
                     DatePicker::make('created_at')
@@ -55,13 +55,13 @@ class ServiceForm
                         ->default(0)
                         ->reactive()
                         ->afterStateUpdated(function ($state, $set, $get) {
-                            $subtotal = (float)($get('subtotal') ?? 0);
-                            $debt = max(0, round($subtotal - (float)$state, 2));
+                            $subtotal = (float) ($get('subtotal') ?? 0);
+                            $debt = max(0, round($subtotal - (float) $state, 2));
                             $set('debt', $debt);
                             $set('is_paid', $debt <= 0);
                         })
                         ->debounce(300)
-                        ->visible(fn() => canAbility('ViewPaidAmount:Service'))
+                        ->visible(fn () => canAbility('ViewPaidAmount:Service'))
                         ->columnSpan(4),
 
                     PriceInput::make('debt')
@@ -69,7 +69,7 @@ class ServiceForm
                         ->numeric()
                         ->readOnly()
                         ->reactive()
-                        ->visible(fn() => canAbility('ViewDebt:Service'))
+                        ->visible(fn () => canAbility('ViewDebt:Service'))
                         ->columnSpan(3),
 
                     PriceInput::make('subtotal')
@@ -77,13 +77,13 @@ class ServiceForm
                         ->numeric()
                         ->reactive()
                         ->readOnly()
-                        ->visible(fn() => canAbility('ViewSubtotal:Service'))
+                        ->visible(fn () => canAbility('ViewSubtotal:Service'))
                         ->columnSpan(4),
 
                     Toggle::make('is_paid')
                         ->label(__('admin.is_paid'))
                         ->reactive()
-                        ->disabled(fn() => !canAbility('PayAll:Service'))
+                        ->disabled(fn () => ! canAbility('PayAll:Service'))
                         ->afterStateUpdated(function (
                             bool $state,
                             Set $set,
@@ -114,7 +114,7 @@ class ServiceForm
                                             ->sum('repair_price');
 
                                         $record->update([
-                                            'advance_payment' => $total
+                                            'advance_payment' => $total,
                                         ]);
 
                                         $set('advance_payment', $total);
@@ -125,7 +125,7 @@ class ServiceForm
                                             ->update(['is_paid' => false]);
 
                                         $record->update([
-                                            'advance_payment' => 0
+                                            'advance_payment' => 0,
                                         ]);
 
                                         $set('advance_payment', 0);
@@ -141,7 +141,7 @@ class ServiceForm
                                 $livewire->dispatch('$refresh');
                                 $livewire->dispatch('refreshService');
                             }
-                        })
+                        }),
                 ])->columnSpanFull(),
             ])
             ->columns(12);

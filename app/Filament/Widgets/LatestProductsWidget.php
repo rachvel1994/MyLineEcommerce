@@ -21,6 +21,15 @@ class LatestProductsWidget extends TableWidget
         return $table
             ->query(
                 Product::query()
+                    ->with([
+                        'battery',
+                        'color',
+                        'condition',
+                        'model',
+                        'status',
+                        'storage',
+                        'user',
+                    ])
                     ->where('status_id', 4)
                     ->latest()
                     ->limit(10)
@@ -31,6 +40,7 @@ class LatestProductsWidget extends TableWidget
                     ->searchable()
                     ->extraAttributes(function (Product $record) {
                         $color = $record->status?->color ?: '#6b7280';
+
                         return ['style' => "background-color: {$color}; font-weight: bolder"];
                     })
                     ->toggleable(),
@@ -39,76 +49,76 @@ class LatestProductsWidget extends TableWidget
                     ->label(__('admin.model'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('order_id')
                     ->label(__('admin.order_id'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('sale_price')
                     ->label(__('admin.sale_price'))
                     ->money('GEL')
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.created_at'))
                     ->date()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
                     ->toggleable(),
 
                 TextColumn::make('color.name')
                     ->label(__('admin.color'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('storage.name')
                     ->label(__('admin.storage'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('battery.name')
                     ->label(__('admin.battery'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('condition.name')
                     ->label(__('admin.condition'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('comment')
                     ->label(__('admin.comment'))
                     ->limit()
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('sku')
                     ->label(__('admin.sku'))
                     ->searchable()
                     ->copyable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "color: red; font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'color: red; font-weight: bolder']),
 
                 TextColumn::make('user.mobile')
                     ->label(__('admin.mobile'))
                     ->searchable()
                     ->copyable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
 
                 TextColumn::make('user.name')
                     ->label(__('admin.user'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"]),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder']),
             ])
             ->deferFilters(false)
             ->paginated(false)

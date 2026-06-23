@@ -15,6 +15,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class ProductsTable
 {
@@ -413,14 +414,21 @@ class ProductsTable
                             ->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
+                        $from = filled($data['created_from'] ?? null)
+                            ? Carbon::parse($data['created_from'])->startOfDay()
+                            : null;
+                        $until = filled($data['created_until'] ?? null)
+                            ? Carbon::parse($data['created_until'])->endOfDay()
+                            : null;
+
                         return $query
                             ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                $from,
+                                fn (Builder $query, Carbon $date): Builder => $query->where('created_at', '>=', $date),
                             )
                             ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                $until,
+                                fn (Builder $query, Carbon $date): Builder => $query->where('created_at', '<=', $date),
                             );
                     }),
             ], FiltersLayout::AboveContentCollapsible)

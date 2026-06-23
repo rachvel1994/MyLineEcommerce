@@ -34,14 +34,14 @@ trait HasUserHeaderActions
         return Action::make('sendSms')
             ->label(__('admin.send_sms'))
             ->visible(static::canUser('CanSendSms'))
-            ->disabled(!static::canUser('CanSendSms'))
+            ->disabled(! static::canUser('CanSendSms'))
             ->icon(Heroicon::ChatBubbleLeft)
             ->schema([
                 Select::make('users')
                     ->label(__('admin.user'))
                     ->multiple()
                     ->searchable()
-                    ->options(User::pluck('name', 'id')->toArray())
+                    ->options(fn (): array => User::query()->pluck('name', 'id')->toArray())
                     ->native(false),
                 Select::make('rating')
                     ->label(__('admin.rating_select'))
@@ -75,14 +75,14 @@ trait HasUserHeaderActions
             ->action(function (array $data) {
                 $manualUsers = collect();
 
-                if (!empty($data['users'])) {
+                if (! empty($data['users'])) {
                     $manualUsers = User::query()
-                        ->when(!empty($data['users']), fn($q) => $q->whereIn('id', $data['users']))
+                        ->when(! empty($data['users']), fn ($q) => $q->whereIn('id', $data['users']))
                         ->get();
                 }
                 $ratingUsers = collect();
 
-                if (!empty($data['rating'])) {
+                if (! empty($data['rating'])) {
 
                     $ratingUsers = User::query()
                         ->whereIn('rating', array_values($data['rating']))
@@ -92,14 +92,13 @@ trait HasUserHeaderActions
 
                 $allPhones = collect([$manualUsers, $ratingUsers])
                     ->flatten()
-                    ->filter(fn ($user) => !empty($user->mobile))
+                    ->filter(fn ($user) => ! empty($user->mobile))
                     ->map(fn ($user) => [
                         'number' => $user->mobile,
-                        'name'   => $user->name,
+                        'name' => $user->name,
                     ])
                     ->unique('number')
                     ->values();
-
 
                 foreach ($allPhones as $entry) {
                     try {

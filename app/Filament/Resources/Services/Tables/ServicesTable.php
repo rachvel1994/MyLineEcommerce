@@ -22,6 +22,8 @@ class ServicesTable
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
+                $query->with(['creator', 'technic']);
+
                 return canAbility('ShowAllProducts:User')
                     ? $query
                     : $query->where('technic_id', auth()->id());
@@ -32,7 +34,7 @@ class ServicesTable
                     ->label(__('admin.created_at'))
                     ->date()
                     ->extraAttributes(function (Service $record) {
-                        return $record->is_paid ? ['style' => "background-color: green"] : ['style' => "background-color: red"];
+                        return $record->is_paid ? ['style' => 'background-color: green'] : ['style' => 'background-color: red'];
                     })
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
@@ -52,26 +54,26 @@ class ServicesTable
                     ->money('GEL', true)
                     ->color('success')
                     ->sortable()
-                    ->visible(fn() => canAbility('ViewPaidAmount:Service'))
+                    ->visible(fn () => canAbility('ViewPaidAmount:Service'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('debt')
                     ->label(__('admin.debt'))
                     ->money('GEL', true)
                     ->sortable()
                     ->color('danger')
-                    ->visible(fn() => canAbility('ViewDebt:Service'))
+                    ->visible(fn () => canAbility('ViewDebt:Service'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('subtotal')
                     ->label(__('admin.total'))
                     ->money('GEL', true)
                     ->color('primary')
                     ->sortable()
-                    ->visible(fn() => canAbility('ViewSubtotal:Service'))
+                    ->visible(fn () => canAbility('ViewSubtotal:Service'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 IconColumn::make('is_paid')
                     ->label(__('admin.is_payed'))
                     ->boolean()
-                    ->visible(fn() => canAbility('ViewIsPaid:Service'))
+                    ->visible(fn () => canAbility('ViewIsPaid:Service'))
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([

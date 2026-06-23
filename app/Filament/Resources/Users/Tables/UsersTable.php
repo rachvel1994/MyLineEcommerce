@@ -18,8 +18,8 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Spatie\Permission\Models\Role;
 use Throwable;
 
 class UsersTable
@@ -31,7 +31,7 @@ class UsersTable
                 $query->withCount([
                     'products as paid_products_count' => function ($q) {
                         $q->where('status_id', 4);
-                    }
+                    },
                 ]);
             })
             ->columns([
@@ -53,7 +53,7 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('rating')
                     ->label(__('admin.rating'))
-                    ->formatStateUsing(fn($record) => [
+                    ->formatStateUsing(fn ($record) => [
                         1 => '⭐',
                         2 => '⭐⭐',
                         3 => '⭐⭐⭐',
@@ -78,13 +78,13 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('paid_products_count')
                     ->label(__('admin.products_count'))
-                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([
                 SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
                     ->preload()
                     ->searchable()
-                    ->options(toArray(Role::class))
                     ->label(__('admin.role')),
 
                 Filter::make('paid_products_count')
@@ -129,9 +129,12 @@ class UsersTable
                         DatePicker::make('until')->label(__('admin.to_date')),
                     ])
                     ->query(function (Builder $query, array $data) {
+                        $from = filled($data['from'] ?? null) ? Carbon::parse($data['from'])->startOfDay() : null;
+                        $until = filled($data['until'] ?? null) ? Carbon::parse($data['until'])->endOfDay() : null;
+
                         return $query
-                            ->when($data['from'], fn($q) => $q->whereDate('created_at', '>=', $data['from']))
-                            ->when($data['until'], fn($q) => $q->whereDate('created_at', '<=', $data['until']));
+                            ->when($from, fn (Builder $query, Carbon $date) => $query->where('created_at', '>=', $date))
+                            ->when($until, fn (Builder $query, Carbon $date) => $query->where('created_at', '<=', $date));
                     }),
             ])
             ->recordActions([
@@ -154,7 +157,7 @@ class UsersTable
             ->label(__('admin.send_sms'))
             ->icon(Heroicon::ChatBubbleLeft)
             ->visible(canAbility('CanSendSms:User'))
-            ->disabled(!canAbility('CanSendSms:User'))
+            ->disabled(! canAbility('CanSendSms:User'))
             ->schema([
                 Select::make('rating')
                     ->label(__('admin.rating_select'))
@@ -176,7 +179,7 @@ class UsersTable
                 $selectedUsers = $records;
 
                 $ratingUsers = collect();
-                if (!empty($data['rating'])) {
+                if (! empty($data['rating'])) {
                     $ratingUsers = User::query()
                         ->whereIn('rating', $data['rating'])
                         ->whereNotNull('mobile')
@@ -185,8 +188,8 @@ class UsersTable
 
                 $allPhones = collect([$selectedUsers, $ratingUsers])
                     ->flatten()
-                    ->filter(fn($user) => !empty($user->mobile))
-                    ->map(fn($user) => [
+                    ->filter(fn ($user) => ! empty($user->mobile))
+                    ->map(fn ($user) => [
                         'number' => $user->mobile,
                         'name' => $user->name,
                     ])

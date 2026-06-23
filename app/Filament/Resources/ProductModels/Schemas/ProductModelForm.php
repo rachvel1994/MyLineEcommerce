@@ -20,7 +20,7 @@ class ProductModelForm
                     ->required()
                     ->maxLength(255),
                 Select::make('parent_id')
-                    ->options(toArray(ProductModel::class))
+                    ->options(fn (): array => toArray(ProductModel::class))
                     ->searchable()
                     ->label(__('admin.parent')),
                 Toggle::make('is_active')

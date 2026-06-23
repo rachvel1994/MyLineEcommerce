@@ -22,10 +22,11 @@ class ServiceReturnedTable
     {
         return $table
             ->modifyQueryUsing(
-                fn($query) => $query
+                fn ($query) => $query
                     ->with(['model', 'battery', 'color', 'condition'])
+                    ->withCount('comments')
                     ->where('status_id', 12)
-                    ->when(!canAbility('ShowAllProducts:User'), function ($q) {
+                    ->when(! canAbility('ShowAllProducts:User'), function ($q) {
                         $q->whereHas('services', function ($serviceQuery) {
                             $serviceQuery->where('technic_id', auth()->id());
                         });
@@ -60,7 +61,7 @@ class ServiceReturnedTable
             ->persistFiltersInSession()
             ->recordActions([
                 CommentsAction::make()
-                    ->label(fn($record) => __('admin.comment') . ' (' . count($record->comments) . ')')
+                    ->label(fn ($record) => __('admin.comment').' ('.$record->comments_count.')')
                     ->mentionables(
                         User::query()
                             ->whereHas('roles', function ($query) {
@@ -71,7 +72,7 @@ class ServiceReturnedTable
                 Action::make('repair')
                     ->label(__('admin.repair'))
                     ->icon(Heroicon::Cog8Tooth)
-                    ->color(fn($record) => $record?->is_paid ? 'success' : 'info')
+                    ->color(fn ($record) => $record?->is_paid ? 'success' : 'info')
                     ->modalHeading(__('admin.repair'))
                     ->modalSubmitActionLabel(__('admin.save'))
                     ->modalWidth('md')
@@ -80,8 +81,7 @@ class ServiceReturnedTable
                             ->label(__('admin.sku'))
                             ->disabled()
                             ->dehydrated(false)
-                            ->default(fn(ServiceProduct $record) => $record->sku),
-
+                            ->default(fn (ServiceProduct $record) => $record->sku),
 
                         Textarea::make('comment')
                             ->label(__('admin.comment'))
@@ -113,7 +113,7 @@ class ServiceReturnedTable
 
                             $record->update(['status_id' => $data['status_id']]);
 
-                            if (!empty($comment)) {
+                            if (! empty($comment)) {
                                 $record->comments()->create([
                                     'body' => $comment,
                                     'author_id' => $userId,
