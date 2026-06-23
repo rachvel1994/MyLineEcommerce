@@ -9,21 +9,24 @@ use Random\RandomException;
 if (! function_exists('canAbility')) {
     function canAbility($ability): bool
     {
-        static $results = [];
-
         $user = auth()->user();
 
         if (! $user) {
             return false;
         }
 
+        $request = request();
+        $results = $request->attributes->get('canAbility.cache', []);
         $cacheKey = $user->getAuthIdentifier().'|'.$ability;
 
         if (array_key_exists($cacheKey, $results)) {
             return $results[$cacheKey];
         }
 
-        return $results[$cacheKey] = (bool) $user->can($ability);
+        $results[$cacheKey] = (bool) $user->can($ability);
+        $request->attributes->set('canAbility.cache', $results);
+
+        return $results[$cacheKey];
     }
 }
 
@@ -226,15 +229,18 @@ if (! function_exists('generateOrderId')) {
 if (! function_exists('toArray')) {
     function toArray(string $model, string $column = 'name', string $key = 'id'): array
     {
-        static $options = [];
-
+        $request = request();
+        $options = $request->attributes->get('toArray.cache', []);
         $cacheKey = implode('|', [$model, $column, $key]);
 
         if (array_key_exists($cacheKey, $options)) {
             return $options[$cacheKey];
         }
 
-        return $options[$cacheKey] = $model::query()->pluck($column, $key)->toArray();
+        $options[$cacheKey] = $model::query()->pluck($column, $key)->toArray();
+        $request->attributes->set('toArray.cache', $options);
+
+        return $options[$cacheKey];
     }
 }
 

@@ -33,12 +33,27 @@ class ProductsTable
     use HasProductActions, HasProductBulkActions;
 
     public static ?string $activeTab = null;
+
     public static ?string $tab = null;
 
     public static function configure(Table $table): Table
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
+                $query->with([
+                    'battery',
+                    'color',
+                    'condition',
+                    'hearAbout',
+                    'information',
+                    'model',
+                    'payments.payment',
+                    'services',
+                    'status',
+                    'storage',
+                    'user',
+                ]);
+
                 return canAbility('ShowAllProducts:User')
                     ? $query
                     : $query->where('user_id', auth()->id());
@@ -49,23 +64,24 @@ class ProductsTable
                     ->searchable()
                     ->extraAttributes(function (Product $record) {
                         $color = $record->status?->color ?: '#6b7280';
+
                         return ['style' => "background-color: {$color}; font-weight: bolder"];
                     })
                     ->toggleable()
-                    ->visible(fn() => static::productAbility('CanViewStatus')),
+                    ->visible(fn () => static::productAbility('CanViewStatus')),
 
                 TextColumn::make('service_id')
                     ->label(__('admin.service'))
                     ->getStateUsing(function ($record) {
                         $service = $record->services->sortByDesc('created_at')->first();
 
-                        return $service ? 'სერვისის ID #' . $service->id : null;
+                        return $service ? 'სერვისის ID #'.$service->id : null;
                     })
                     ->color(function ($record) {
                         return $record->services->isEmpty() ? 'danger' : 'success';
                     })
                     ->toggleable()
-                    ->visible(fn($livewire) => $livewire->activeTab === 'პასაჟი სერვისი'
+                    ->visible(fn ($livewire) => $livewire->activeTab === 'პასაჟი სერვისი'
                         && static::productAbility('CanViewOrderId')
                     )
                     ->extraAttributes([
@@ -76,34 +92,33 @@ class ProductsTable
                     ->label(__('admin.model'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewModel')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewModel')),
 
                 TextColumn::make('order_id')
                     ->label(__('admin.order_id'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn($livewire) => static::productAbility('CanViewOrderId') && $livewire->activeTab === 'გაყიდულია'),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn ($livewire) => static::productAbility('CanViewOrderId') && $livewire->activeTab === 'გაყიდულია'),
 
                 TextColumn::make('user.name')
                     ->label(__('admin.user'))
                     ->searchable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
                     ->toggleable()
-                    ->visible(fn($livewire) => static::productAbility('CanViewUser') && $livewire->activeTab === 'გაყიდულია'),
+                    ->visible(fn ($livewire) => static::productAbility('CanViewUser') && $livewire->activeTab === 'გაყიდულია'),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.date'))
                     ->date()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
                     ->toggleable(),
-
 
                 TextColumn::make('payments_list')
                     ->label(__('admin.payment'))
-                    ->extraAttributes(fn() => [
-                        'style' => 'font-weight: bolder'
+                    ->extraAttributes(fn () => [
+                        'style' => 'font-weight: bolder',
                     ])
                     ->html()
                     ->default(function ($record) {
@@ -118,80 +133,78 @@ class ProductsTable
                             })
                             ->implode('<br>');
                     })
-                    ->visible(fn($livewire) => $livewire->activeTab == 'გაყიდულია')
+                    ->visible(fn ($livewire) => $livewire->activeTab == 'გაყიდულია')
                     ->color('success')
                     ->toggleable(),
 
                 TextColumn::make('hearAbout.name')
                     ->label(__('admin.hear_about'))
                     ->searchable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
                     ->toggleable()
-                    ->visible(fn($livewire) => static::productAbility('CanViewHearAbout') && $livewire->activeTab === 'გაყიდულია'),
+                    ->visible(fn ($livewire) => static::productAbility('CanViewHearAbout') && $livewire->activeTab === 'გაყიდულია'),
 
                 TextColumn::make('color.name')
                     ->label(__('admin.color'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewColor')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewColor')),
 
                 TextColumn::make('storage.name')
                     ->label(__('admin.storage'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewStorage')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewStorage')),
 
                 TextColumn::make('battery.name')
                     ->label(__('admin.battery'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewBattery')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewBattery')),
 
                 TextColumn::make('price')
                     ->money('GEL')
                     ->label(__('admin.self_price'))
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => canAbility('CanViewPrice:Product')),
-
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => canAbility('CanViewPrice:Product')),
 
                 TextColumn::make('retail_price')
                     ->label(__('admin.retail_price'))
                     ->money('GEL')
                     ->toggleable()
-                    ->hidden(fn($livewire) => $livewire->activeTab === 'გაყიდულია'
+                    ->hidden(fn ($livewire) => $livewire->activeTab === 'გაყიდულია'
                         && static::productAbility('CanViewRetailPrice')
                     )
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewRetailPrice')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewRetailPrice')),
 
                 TextColumn::make('sale_price')
                     ->label(__('admin.sale_price'))
                     ->money('GEL')
                     ->toggleable()
-                    ->hidden(fn($livewire) => $livewire->activeTab === 'გაყიდულია'
+                    ->hidden(fn ($livewire) => $livewire->activeTab === 'გაყიდულია'
                         && static::productAbility('CanViewSalePrice')
                     )
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewSalePrice')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewSalePrice')),
 
                 TextColumn::make('condition.name')
                     ->label(__('admin.condition'))
                     ->searchable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewCondition')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewCondition')),
 
                 TextColumn::make('information_names')
                     ->label(__('admin.repair_information'))
                     ->state(fn (Product $record) => $record->information->pluck('name')->join(', '))
                     ->wrap()
                     ->searchable(query: function ($query, string $search) {
-                        $query->whereHas('information', fn ($q) =>
-                        $q->where('name', 'like', "%{$search}%")
+                        $query->whereHas('information', fn ($q) => $q->where('name', 'like', "%{$search}%")
                         );
                     })
                     ->toggleable()
@@ -206,32 +219,31 @@ class ProductsTable
                     ->searchable()
                     ->toggleable()
                     ->badge()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewComment')),
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewComment')),
 
                 TextColumn::make('sku')
                     ->label(__('admin.sku'))
                     ->searchable()
                     ->copyable()
                     ->toggleable()
-                    ->extraAttributes(fn() => ['style' => "color: red; font-weight: bolder"])
-                    ->visible(fn() => static::productAbility('CanViewSku')),
-
+                    ->extraAttributes(fn () => ['style' => 'color: red; font-weight: bolder'])
+                    ->visible(fn () => static::productAbility('CanViewSku')),
 
                 TextColumn::make('user.mobile')
                     ->label(__('admin.mobile'))
                     ->searchable()
                     ->copyable()
-                    ->extraAttributes(fn() => ['style' => "font-weight: bolder"])
+                    ->extraAttributes(fn () => ['style' => 'font-weight: bolder'])
                     ->toggleable()
-                    ->visible(fn($livewire) => static::productAbility('CanViewMobile') &&  $livewire->activeTab === 'გაყიდულია'),
+                    ->visible(fn ($livewire) => static::productAbility('CanViewMobile') && $livewire->activeTab === 'გაყიდულია'),
 
                 TextColumn::make('company_id')
                     ->label(__('admin.company'))
                     ->searchable()
-                    ->formatStateUsing(fn($record) => companies($record->company_id))
+                    ->formatStateUsing(fn ($record) => companies($record->company_id))
                     ->toggleable()
-                    ->visible(fn() => static::productAbility('CanViewCompany')),
+                    ->visible(fn () => static::productAbility('CanViewCompany')),
             ])
             ->filters([
                 Filter::make('product')
@@ -243,7 +255,7 @@ class ProductsTable
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['sku'] ?? null,
-                            fn(Builder $query, $sku): Builder => $query->where('sku', 'like', "%{$sku}%")
+                            fn (Builder $query, $sku): Builder => $query->where('sku', 'like', "%{$sku}%")
                         );
                     }),
 
@@ -281,7 +293,7 @@ class ProductsTable
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['order_id'] ?? null,
-                            fn(Builder $query, $orderId): Builder => $query->where('order_id', $orderId)
+                            fn (Builder $query, $orderId): Builder => $query->where('order_id', $orderId)
                         );
                     }),
                 SelectFilter::make('user_id')
@@ -289,14 +301,14 @@ class ProductsTable
                     ->options(toArray(User::class))
                     ->label(__('admin.user'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewUser')),
+                    ->visible(fn () => static::productAbility('CanViewUser')),
 
                 SelectFilter::make('model_id')
                     ->preload()
                     ->options(toArray(ProductModel::class))
                     ->label(__('admin.model'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewModel')),
+                    ->visible(fn () => static::productAbility('CanViewModel')),
 
                 SelectFilter::make('payment_id')
                     ->searchable()
@@ -305,7 +317,7 @@ class ProductsTable
                     ->query(function ($query, $data) {
                         return $query->when(
                             $data['value'] ?? null,
-                            fn($q, $value) => $q->whereHas('payments', fn($p) => $p->where('payment_id', $value)
+                            fn ($q, $value) => $q->whereHas('payments', fn ($p) => $p->where('payment_id', $value)
                             )
                         );
                     }),
@@ -315,85 +327,85 @@ class ProductsTable
                     ->options(companies())
                     ->label(__('admin.company'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewCompany')),
+                    ->visible(fn () => static::productAbility('CanViewCompany')),
 
                 SelectFilter::make('category_id')
                     ->preload()
                     ->options(toArray(Category::class))
                     ->label(__('admin.category'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewCategory')),
+                    ->visible(fn () => static::productAbility('CanViewCategory')),
 
                 SelectFilter::make('condition_id')
                     ->preload()
                     ->options(toArray(Condition::class))
                     ->label(__('admin.condition'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewCondition')),
+                    ->visible(fn () => static::productAbility('CanViewCondition')),
 
                 SelectFilter::make('color_id')
                     ->preload()
                     ->options(toArray(Color::class))
                     ->label(__('admin.color'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewColor')),
+                    ->visible(fn () => static::productAbility('CanViewColor')),
 
                 SelectFilter::make('status_id')
                     ->preload()
                     ->options(toArray(Status::class))
                     ->label(__('admin.status'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewStatus')),
+                    ->visible(fn () => static::productAbility('CanViewStatus')),
 
                 SelectFilter::make('storage_id')
                     ->preload()
                     ->options(toArray(Storage::class))
                     ->label(__('admin.storage'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewStorage')),
+                    ->visible(fn () => static::productAbility('CanViewStorage')),
 
                 SelectFilter::make('battery_id')
                     ->preload()
                     ->options(toArray(Battery::class))
                     ->label(__('admin.battery'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewBattery')),
+                    ->visible(fn () => static::productAbility('CanViewBattery')),
 
                 SelectFilter::make('delivery_id')
                     ->preload()
                     ->options(toArray(Delivery::class))
                     ->label(__('admin.delivery'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewDelivery')),
+                    ->visible(fn () => static::productAbility('CanViewDelivery')),
 
                 SelectFilter::make('guarantee_id')
                     ->preload()
                     ->options(toArray(Guarantee::class))
                     ->label(__('admin.guarantee'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewGuarantee')),
+                    ->visible(fn () => static::productAbility('CanViewGuarantee')),
 
                 SelectFilter::make('hear_about_id')
                     ->preload()
                     ->options(toArray(HearAbout::class))
                     ->label(__('admin.hear_about'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewHearAbout')),
+                    ->visible(fn () => static::productAbility('CanViewHearAbout')),
 
                 TernaryFilter::make('is_repaired')
                     ->label(__('admin.is_repaired'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewIsRepaired')),
+                    ->visible(fn () => static::productAbility('CanViewIsRepaired')),
 
                 TernaryFilter::make('show_repair_information')
                     ->label(__('admin.show_repair_information'))
                     ->searchable()
-                    ->visible(fn() => static::productAbility('CanViewShowRepairedInformation')),
+                    ->visible(fn () => static::productAbility('CanViewShowRepairedInformation')),
                 TernaryFilter::make('price')
                     ->label(__('admin.self_price'))
                     ->query(function (Builder $query, array $data): Builder {
 
-                        if (!array_key_exists('value', $data) || $data['value'] == null) {
+                        if (! array_key_exists('value', $data) || $data['value'] == null) {
                             return $query;
                         }
 
@@ -407,7 +419,7 @@ class ProductsTable
                                     ->orWhere('price', 0);
                             });
                     })
-                    ->visible(fn() => canAbility('CanViewPrice:Product')),
+                    ->visible(fn () => canAbility('CanViewPrice:Product')),
                 Filter::make('created_at')
                     ->label(__('admin.created_at'))
                     ->schema([
@@ -422,22 +434,22 @@ class ProductsTable
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
             ], FiltersLayout::AboveContentCollapsible)
             ->deferFilters(false)
             ->persistFiltersInSession()
             ->recordActions([
-                ...static::productActions()
+                ...static::productActions(),
             ])
-			->extraAttributes([
-    'class' => 'dual-scroll',
-])
+            ->extraAttributes([
+                'class' => 'dual-scroll',
+            ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     ...static::productBulkActions(),
