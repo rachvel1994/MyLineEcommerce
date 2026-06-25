@@ -165,6 +165,8 @@ class ProductForm
                                             ->label(__('admin.images'))
                                             ->image()
                                             ->multiple()
+                                            ->disk('public')
+                                            ->visibility('public')
                                             ->columnSpanFull()
                                             ->directory('products/images')
                                             ->panelLayout('grid')

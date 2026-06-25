@@ -11,6 +11,7 @@ return [
     'show_in_product' => 'Show in products',
     'pay' => 'Pay',
     'payed' => 'Paid',
+    'redirect_back' => 'Redirect Back',
     'is_payed' => 'Paid',
     'max' => 'Maximum',
     'no_status' => 'No status',

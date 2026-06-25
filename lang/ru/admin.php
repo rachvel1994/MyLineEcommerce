@@ -18,6 +18,7 @@ return [
     'consignment' => 'Консигнация',
     'created_at' => 'Создано',
     'updated_at' => 'Обновлено',
+    'redirect_back' => 'Вернуться назад',
     'status' => 'Статус',
     'name' => 'Имя',
     'sku' => 'Серийный номер / IMEI',

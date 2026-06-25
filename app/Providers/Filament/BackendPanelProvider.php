@@ -33,6 +33,7 @@ class BackendPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/backend/theme.css')
             ->login()
             ->profile()
+            ->homeUrl('products')
             ->passwordReset()
             ->colors([
                 'primary' => Color::Amber,

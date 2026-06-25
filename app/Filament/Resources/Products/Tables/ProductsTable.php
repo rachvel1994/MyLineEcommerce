@@ -292,6 +292,21 @@ class ProductsTable
                     ->searchable()
                     ->visible(fn () => static::productAbility('CanViewUser')),
 
+                SelectFilter::make('seller_id')
+                    ->label(__('admin.seller'))
+                    ->relationship(
+                        name: 'seller',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) =>
+                        $query->whereNot('id', 1)
+                            ->whereHas('roles', fn ($q) =>
+                            $q->whereIn('id', [1, 5, 6, 7])
+                            )
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => static::productAbility('CanViewSeller')),
+
                 SelectFilter::make('model_id')
                     ->relationship('model', 'name')
                     ->preload()
@@ -433,7 +448,7 @@ class ProductsTable
                     }),
             ], FiltersLayout::AboveContentCollapsible)
             ->deferFilters(false)
-            ->persistFiltersInSession()
+//            ->persistFiltersInSession()
             ->recordActions([
                 ...static::productActions(),
             ])

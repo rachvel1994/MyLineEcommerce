@@ -18,8 +18,10 @@ use BezhanSalleh\FilamentShield\FilamentShield;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Blaze\Blaze;
+use Filament\Auth\Http\Responses\LoginResponse;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -27,7 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-
+        $this->app->singleton(
+            LoginResponse::class,
+            \App\Http\Responses\LoginResponse::class
+        );
     }
 
     /**
@@ -56,5 +61,9 @@ class AppServiceProvider extends ServiceProvider
         ConsignmentPriceChange::observe(ConsignmentPriceChangeObserver::class);
         ServiceRepairHistory::observe(ServiceRepairHistoryObserver::class);
         (new FilamentShield)->prohibitDestructiveCommands($this->app->isProduction());
+
+        if ($this->app->isProduction()){
+            URL::forceHttps();
+        }
     }
 }
