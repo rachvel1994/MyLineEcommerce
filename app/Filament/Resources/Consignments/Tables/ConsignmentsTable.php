@@ -30,7 +30,7 @@ class ConsignmentsTable
                     ->label(__('admin.created_at'))
                     ->date()
                     ->extraAttributes(function (Consignment $record) {
-                        return $record->is_paid ? ['style' => 'background-color: green'] : ['style' => 'background-color: red'];
+                        return $record->advance_payment == $record->subtotal ? ['style' => 'background-color: green'] : ['style' => 'background-color: red'];
                     })
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
