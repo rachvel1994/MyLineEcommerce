@@ -280,6 +280,8 @@ return [
     'previous_year' => 'წინა წელი',
     'sale_price_total' => 'სარეალიზაციო ფასის ჯამი',
     'widget_report_excel' => 'ვიჯეტების რეპორტის გადმოწერა',
+    'database_download' => 'მონაცემთა ბაზის გადმოწერა',
+    'database_download_confirmation' => 'შეიქმნას და გადმოიწეროს მონაცემთა ბაზის მიმდინარე SQL სარეზერვო ასლი?',
     'widget_report' => 'ვიჯეტების რეპორტი',
     'widget' => 'ვიჯეტი',
     'all_widgets' => 'ყველა ვიჯეტი',

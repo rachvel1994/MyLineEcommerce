@@ -13,6 +13,7 @@ use App\Filament\Widgets\SalesSourcesChartWidget;
 use App\Filament\Widgets\SellerPerformanceWidget;
 use App\Filament\Widgets\TopModelsWidget;
 use App\Filament\Widgets\TopUsersChartWidget;
+use App\Support\DatabaseExportAccess;
 use App\Support\WidgetReportAccess;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -61,6 +62,17 @@ class AnalyticsDashboard extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('download_database')
+                ->label(__('admin.database_download'))
+                ->icon(Heroicon::CircleStack)
+                ->color('warning')
+                ->visible(fn (): bool => DatabaseExportAccess::allowed(auth()->user()))
+                ->requiresConfirmation()
+                ->modalHeading(__('admin.database_download'))
+                ->modalDescription(__('admin.database_download_confirmation'))
+                ->action(fn () => redirect()->to(route('database.export')))
+                ->openUrlInNewTab(),
+
             Action::make('download_widget_report')
                 ->label(__('admin.widget_report_excel'))
                 ->icon(Heroicon::ArrowDownTray)

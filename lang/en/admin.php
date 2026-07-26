@@ -140,6 +140,8 @@ return [
     'previous_year' => 'Previous year',
     'sale_price_total' => 'Sale price total',
     'widget_report_excel' => 'Download widget report',
+    'database_download' => 'Download database',
+    'database_download_confirmation' => 'Create and download a current SQL backup of the database?',
     'widget_report' => 'Widget report',
     'widget' => 'Widget',
     'all_widgets' => 'All widgets',

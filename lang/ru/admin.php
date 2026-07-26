@@ -139,6 +139,8 @@ return [
     'previous_year' => 'Предыдущий год',
     'sale_price_total' => 'Сумма продажной цены',
     'widget_report_excel' => 'Скачать отчет виджетов',
+    'database_download' => 'Скачать базу данных',
+    'database_download_confirmation' => 'Создать и скачать текущую резервную копию базы данных в формате SQL?',
     'widget_report' => 'Отчет виджетов',
     'widget' => 'Виджет',
     'all_widgets' => 'Все виджеты',

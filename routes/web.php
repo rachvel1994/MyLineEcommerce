@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DatabaseExportController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductExportController;
 use App\Http\Controllers\WidgetReportExportController;
@@ -15,6 +16,7 @@ Route::get('/queue-run', function () {
 
 Route::middleware(['auth', 'web'])->group(function () {
     Route::get('/export/products', [ProductExportController::class, 'export'])->name('products.export');
+    Route::get('/export/database', DatabaseExportController::class)->name('database.export');
     Route::get('/export/widget-reports', WidgetReportExportController::class)->name('widget-reports.export');
     Route::get('/guarantee/{id}', [PdfController::class, 'guaranteePdf'])->name('pdf.guarantee');
 });
