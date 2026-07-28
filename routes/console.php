@@ -10,4 +10,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command('cashdrawer:close')
     ->dailyAt('23:00')
+    ->timezone(config('app.timezone'))
+    ->appendOutputTo(storage_path('logs/cashdrawer-scheduler.log'))
     ->withoutOverlapping();
