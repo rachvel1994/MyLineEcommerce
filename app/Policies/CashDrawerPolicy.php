@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\CashDrawer;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class CashDrawerPolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:CashDrawer');
@@ -62,4 +62,13 @@ class CashDrawerPolicy
         return $authUser->can('CanReopen:CashDrawer');
     }
 
+    public function canViewAmountFixer(AuthUser $authUser): bool
+    {
+        return $authUser->can('CanViewAmountFixer:CashDrawer');
+    }
+
+    public function canUseAmountFixer(AuthUser $authUser): bool
+    {
+        return $authUser->can('CanUseAmountFixer:CashDrawer');
+    }
 }

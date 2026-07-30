@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
+use BezhanSalleh\FilamentShield\Support\Utils;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use BezhanSalleh\FilamentShield\Support\Utils;
 use Spatie\Permission\PermissionRegistrar;
 
 class ShieldSeeder extends Seeder
@@ -145,9 +146,9 @@ class ShieldSeeder extends Seeder
             return;
         }
 
-        /** @var \Illuminate\Database\Eloquent\Model $roleModel */
+        /** @var Model $roleModel */
         $roleModel = Utils::getRoleModel();
-        /** @var \Illuminate\Database\Eloquent\Model $permissionModel */
+        /** @var Model $permissionModel */
         $permissionModel = Utils::getPermissionModel();
 
         $tenancyEnabled = false;
@@ -174,7 +175,17 @@ class ShieldSeeder extends Seeder
             $role = $roleModel::firstOrCreate($roleData);
 
             if (! blank($rolePlusPermission['permissions'])) {
-                $permissionModels = collect($rolePlusPermission['permissions'])
+                $permissions = $rolePlusPermission['permissions'];
+
+                if ($roleData['name'] === config('filament-shield.super_admin.name')) {
+                    $permissions = array_values(array_unique([
+                        ...$permissions,
+                        'CanViewAmountFixer:CashDrawer',
+                        'CanUseAmountFixer:CashDrawer',
+                    ]));
+                }
+
+                $permissionModels = collect($permissions)
                     ->map(fn ($permission) => $permissionModel::firstOrCreate([
                         'name' => $permission,
                         'guard_name' => $rolePlusPermission['guard_name'],
@@ -192,7 +203,7 @@ class ShieldSeeder extends Seeder
             return;
         }
 
-        /** @var \Illuminate\Database\Eloquent\Model $permissionModel */
+        /** @var Model $permissionModel */
         $permissionModel = Utils::getPermissionModel();
 
         foreach ($permissions as $permission) {

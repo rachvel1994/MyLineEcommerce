@@ -183,4 +183,8 @@ return [
     'total_quantity' => 'Total quantity',
     'cash_adjustment' => 'Cash adjustment',
     'accessory_sales_report' => 'Accessory sales',
+    'fix_cash_drawer_amounts' => 'Fix amounts from movements',
+    'fix_cash_drawer_amounts_confirmation' => 'Reassign movements by date and recalculate cash drawer balances? Leave the dates empty to process all movements.',
+    'fix_cash_drawer_amounts_success' => 'Cash drawer amounts were fixed',
+    'fix_cash_drawer_amounts_failed' => 'Cash drawer amount fix failed',
 ];

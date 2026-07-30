@@ -298,4 +298,8 @@ return [
     'total_quantity' => 'სრული რაოდენობა',
     'cash_adjustment' => 'სალაროს კორექტირება',
     'accessory_sales_report' => 'აქსესუარების გაყიდვები',
+    'fix_cash_drawer_amounts' => 'თანხების გასწორება მოძრაობებით',
+    'fix_cash_drawer_amounts_confirmation' => 'გადანაწილდეს მოძრაობები თარიღების მიხედვით და გადაითვალოს სალაროს ნაშთები? ყველა მოძრაობისთვის თარიღები ცარიელი დატოვეთ.',
+    'fix_cash_drawer_amounts_success' => 'სალაროს თანხები გასწორდა',
+    'fix_cash_drawer_amounts_failed' => 'სალაროს თანხების გასწორება ვერ შესრულდა',
 ];

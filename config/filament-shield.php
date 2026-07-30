@@ -1,5 +1,17 @@
 <?php
 
+use App\Filament\Resources\Accessories\AccessoryResource;
+use App\Filament\Resources\CashDrawers\CashDrawerResource;
+use App\Filament\Resources\CashMovements\CashMovementResource;
+use App\Filament\Resources\Consignments\ConsignmentResource;
+use App\Filament\Resources\Products\ProductResource;
+use App\Filament\Resources\Services\ServiceResource;
+use App\Filament\Resources\Users\UserResource;
+use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
+use Filament\Pages\Dashboard;
+use Filament\Widgets\AccountWidget;
+use Filament\Widgets\FilamentInfoWidget;
+
 return [
 
     /*
@@ -120,7 +132,7 @@ return [
         'merge' => true,
         'generate' => true,
         'methods' => [
-            'viewAny', 'create', 'update', 'delete', 'deleteAny'
+            'viewAny', 'create', 'update', 'delete', 'deleteAny',
         ],
         'single_parameter_methods' => [
             'viewAny',
@@ -162,19 +174,19 @@ return [
     'resources' => [
         'subject' => 'model',
         'manage' => [
-            \BezhanSalleh\FilamentShield\Resources\Roles\RoleResource::class => [
+            RoleResource::class => [
                 'viewAny',
                 'view',
                 'create',
                 'update',
                 'delete',
             ],
-            \App\Filament\Resources\Users\UserResource::class => [
+            UserResource::class => [
                 'show_all_products',
                 'can_access_panel',
-                'can_send_sms'
+                'can_send_sms',
             ],
-            \App\Filament\Resources\Accessories\AccessoryResource::class => [
+            AccessoryResource::class => [
                 'view_any_consignment_accessories',
                 'view_consignment_accessories',
                 'create_consignment_accessories',
@@ -183,17 +195,19 @@ return [
                 'attach_consignment_accessories',
                 'detach_consignment_accessories',
             ],
-            \App\Filament\Resources\CashMovements\CashMovementResource::class => [
-                'viewAny'
+            CashMovementResource::class => [
+                'viewAny',
             ],
-            \App\Filament\Resources\CashDrawers\CashDrawerResource::class => [
+            CashDrawerResource::class => [
                 'can_set_opening_balance',
                 'can_withdraw',
                 'can_deposit',
                 'can_close',
                 'can_reopen',
+                'can_view_amount_fixer',
+                'can_use_amount_fixer',
             ],
-            \App\Filament\Resources\Consignments\ConsignmentResource::class => [
+            ConsignmentResource::class => [
                 'view_customer',
                 'view_creator',
                 'view_paid_amount',
@@ -206,7 +220,7 @@ return [
                 'view_debt',
                 'view_is_paid',
             ],
-            \App\Filament\Resources\Services\ServiceResource::class => [
+            ServiceResource::class => [
                 'view_customer',
                 'view_creator',
                 'view_paid_amount',
@@ -221,7 +235,7 @@ return [
                 'can_pay',
                 'can_pay_all',
             ],
-            \App\Filament\Resources\Products\ProductResource::class => [
+            ProductResource::class => [
                 'view',
                 'can_view_sku',
                 'can_view_order_id',
@@ -286,7 +300,7 @@ return [
         'subject' => 'class',
         'prefix' => 'view',
         'exclude' => [
-            \Filament\Pages\Dashboard::class,
+            Dashboard::class,
         ],
     ],
 
@@ -305,8 +319,8 @@ return [
         'subject' => 'class',
         'prefix' => 'view',
         'exclude' => [
-            \Filament\Widgets\AccountWidget::class,
-            \Filament\Widgets\FilamentInfoWidget::class,
+            AccountWidget::class,
+            FilamentInfoWidget::class,
         ],
     ],
 

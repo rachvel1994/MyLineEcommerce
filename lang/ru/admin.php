@@ -182,4 +182,8 @@ return [
     'total_quantity' => 'Общее количество',
     'cash_adjustment' => 'Корректировка кассы',
     'accessory_sales_report' => 'Продажи аксессуаров',
+    'fix_cash_drawer_amounts' => 'Исправить суммы по движениям',
+    'fix_cash_drawer_amounts_confirmation' => 'Перераспределить движения по датам и пересчитать остатки кассы? Оставьте даты пустыми, чтобы обработать все движения.',
+    'fix_cash_drawer_amounts_success' => 'Суммы кассы исправлены',
+    'fix_cash_drawer_amounts_failed' => 'Не удалось исправить суммы кассы',
 ];
