@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Services\RelationManagers;
 
 use App\Models\Service;
@@ -12,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -47,13 +50,28 @@ class RepairRelationManager extends RelationManager
                     ->label(__('admin.product'))
                     ->copyable()
                     ->searchable(),
-                TextColumn::make('repair_price')
-                    ->label(__('admin.price'))
-                    ->money('GEL'),
+                auth()->user()?->hasRole('ადმინისტრატორი')
+                    ? TextInputColumn::make('repair_price')
+                        ->label(__('admin.price'))
+                        ->type('number')
+                        ->inputMode('decimal')
+                        ->step('0.01')
+                        ->suffix('₾')
+                        ->rules(['required', 'numeric', 'min:0'])
+                        ->disabled(fn (): bool => ! auth()->user()?->hasRole('ადმინისტრატორი'))
+                        ->afterStateUpdated(function ($record, $livewire): void {
+                            $record->service?->recalculateTotals();
+
+                            $livewire->dispatch('$refresh');
+                            $livewire->dispatch('refreshService');
+                        })
+                    : TextColumn::make('repair_price')
+                        ->label(__('admin.price'))
+                        ->money('GEL'),
                 TextColumn::make('comment')
                     ->label(__('admin.service_comment'))
                     ->getStateUsing(fn ($record) => $record->comment
-                        ?? strip_tags($record->product?->service_comment)
+                        ?? strip_tags($record->product?->service_comment ?? '')
                     )
                     ->wrap()
                     ->searchable(),

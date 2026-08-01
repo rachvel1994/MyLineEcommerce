@@ -92,6 +92,7 @@ return [
     'withdraw' => 'Withdraw',
     'grand_total' => 'Grand total',
     'reset' => 'Reset',
+    'reset_filter' => 'Reset filter',
     'buyer' => 'Buyer',
     'save' => 'Save',
     'model' => 'Model',

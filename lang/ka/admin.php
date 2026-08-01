@@ -130,6 +130,7 @@ return [
     'product_price' => 'პროდუქციის ფასი',
     'grand_total' => 'სრული ჯამი',
     'reset' => 'გასუფთავება',
+    'reset_filter' => 'გასუფთავება',
     'added_by' => 'დაამატა',
     'to_collect' => 'რეისის ჯამი',
     'guarantee_created_successfully' => 'გარანტია წარმატებით შეიქმნა',

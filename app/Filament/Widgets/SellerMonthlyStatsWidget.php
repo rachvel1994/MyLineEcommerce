@@ -1,18 +1,76 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Widgets;
 
 use App\Models\AccessoryOrderItem;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Schema;
+use Filament\Widgets\ChartWidget\Concerns\HasFiltersSchema;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class SellerMonthlyStatsWidget extends StatsOverviewWidget
 {
+    use HasFiltersSchema;
+
+    protected string $view = 'filament.widgets.seller-monthly-stats-widget';
+
     protected int|string|array $columnSpan = 'full';
 
     protected function getColumns(): int
     {
         return 4;
+    }
+
+    public function filtersSchema(Schema $schema): Schema
+    {
+        return $schema->components([
+            Grid::make(2)->schema([
+                DatePicker::make('start_date')
+                    ->label(__('admin.start_date')),
+
+                DatePicker::make('end_date')
+                    ->label(__('admin.end_date')),
+            ]),
+        ]);
+    }
+
+    private function startDate(): CarbonInterface
+    {
+        return filled($this->filters['start_date'] ?? null)
+            ? Carbon::parse($this->filters['start_date'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+    }
+
+    private function endDate(): CarbonInterface
+    {
+        return filled($this->filters['end_date'] ?? null)
+            ? Carbon::parse($this->filters['end_date'])->endOfDay()
+            : now()->endOfDay();
+    }
+
+    public function updatedFilters(): void
+    {
+        $this->cachedStats = null;
+    }
+
+    public function resetDateFilters(): void
+    {
+        $clearedFilters = [
+            'start_date' => null,
+            'end_date' => null,
+        ];
+
+        $this->getFiltersSchema()->fill($clearedFilters);
+        $this->filters = $clearedFilters;
+
+        $this->cachedStats = null;
+        unset($this->cachedSchemas['content']);
     }
 
     protected function getStats(): array
@@ -24,8 +82,8 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
         /*
          * Current month = from first day of current month until today.
          */
-        $currentMonthStart = $now->copy()->startOfMonth()->startOfDay();
-        $currentMonthEnd = $now->copy()->endOfDay();
+        $currentMonthStart = $this->startDate();
+        $currentMonthEnd = $this->endDate();
 
         /*
          * Previous month = previous full calendar month.
@@ -117,8 +175,8 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
 
         $rows = $query
             ->whereBetween('accessory_orders.created_at', [
-                $previousYearStart,
-                $currentMonthEnd,
+                $previousYearStart->min($currentMonthStart),
+                $previousYearEnd->max($currentMonthEnd),
             ])
 
             /*
@@ -140,9 +198,7 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
             )
 
             ->orderByDesc(
-                $canSeeCompanyProfit
-                    ? 'current_month_company_profit'
-                    : 'current_month_total_price'
+                'current_month_total_price'
             )
 
             ->get();
@@ -210,36 +266,23 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
         );
 
         foreach ($rows as $row) {
-            $currentMonthValue = $canSeeCompanyProfit
-                ? (float) ($row->current_month_company_profit ?? 0)
-                : (float) ($row->current_month_total_price ?? 0);
+            $currentMonthValue = (float) ($row->current_month_total_price ?? 0);
+            $previousMonthValue = (float) ($row->previous_month_total_price ?? 0);
+            $currentYearValue = (float) ($row->current_year_total_price ?? 0);
+            $previousYearValue = (float) ($row->previous_year_total_price ?? 0);
 
-            $previousMonthValue = $canSeeCompanyProfit
-                ? (float) ($row->previous_month_company_profit ?? 0)
-                : (float) ($row->previous_month_total_price ?? 0);
-
-            $currentYearValue = $canSeeCompanyProfit
-                ? (float) ($row->current_year_company_profit ?? 0)
-                : (float) ($row->current_year_total_price ?? 0);
-
-            $previousYearValue = $canSeeCompanyProfit
-                ? (float) ($row->previous_year_company_profit ?? 0)
-                : (float) ($row->previous_year_total_price ?? 0);
-
-            $description = __('admin.previous_month') . ': ' . money($previousMonthValue) .
-                ' | ' .
-                __('admin.current_year') . ': ' . money($currentYearValue) .
-                ' | ' .
-                __('admin.previous_year') . ': ' . money($previousYearValue) .
-                ' | ' .
-                __('admin.gifted') . ': ' . (int) ($row->current_month_gifted_quantity ?? 0);
+            $description = __('admin.previous_month').': '.money($previousMonthValue).
+                ' | '.
+                __('admin.current_year').': '.money($currentYearValue).
+                ' | '.
+                __('admin.previous_year').': '.money($previousYearValue).
+                ' | '.
+                __('admin.gifted').': '.(int) ($row->current_month_gifted_quantity ?? 0);
 
             if ($canSeeCompanyProfit) {
                 $description .=
-                    ' | ' .
-                    __('admin.sale_price_total') . ': ' . money((float) ($row->current_month_sale_price_total ?? 0)) .
-                    ' | ' .
-                    __('admin.total_price') . ': ' . money((float) ($row->current_month_total_price ?? 0));
+                    ' | '.
+                    __('admin.company_profit').': '.money((float) ($row->current_month_company_profit ?? 0));
             }
 
             $stats[] = Stat::make(
@@ -395,17 +438,17 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
         bool $includeCompanyProfit
     ): array {
         $totals = [
-            'total_price' => (float) $rows->sum($prefix . '_total_price'),
+            'total_price' => (float) $rows->sum($prefix.'_total_price'),
 
-            'sold_quantity' => (int) $rows->sum($prefix . '_sold_quantity'),
-            'gifted_quantity' => (int) $rows->sum($prefix . '_gifted_quantity'),
-            'total_quantity' => (int) $rows->sum($prefix . '_total_quantity'),
+            'sold_quantity' => (int) $rows->sum($prefix.'_sold_quantity'),
+            'gifted_quantity' => (int) $rows->sum($prefix.'_gifted_quantity'),
+            'total_quantity' => (int) $rows->sum($prefix.'_total_quantity'),
         ];
 
         if ($includeCompanyProfit) {
-            $totals['sale_price_total'] = (float) $rows->sum($prefix . '_sale_price_total');
-            $totals['cost_total'] = (float) $rows->sum($prefix . '_cost_total');
-            $totals['company_profit'] = (float) $rows->sum($prefix . '_company_profit');
+            $totals['sale_price_total'] = (float) $rows->sum($prefix.'_sale_price_total');
+            $totals['cost_total'] = (float) $rows->sum($prefix.'_cost_total');
+            $totals['company_profit'] = (float) $rows->sum($prefix.'_company_profit');
         }
 
         return $totals;
@@ -417,26 +460,22 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
         string $color,
         bool $canSeeCompanyProfit
     ): Stat {
-        $value = $canSeeCompanyProfit
-            ? money((float) ($totals['company_profit'] ?? 0))
-            : money((float) ($totals['total_price'] ?? 0));
+        $value = money((float) ($totals['total_price'] ?? 0));
 
         $description = $canSeeCompanyProfit
             ? (
-                __('admin.sale_price_total') . ': ' . money((float) ($totals['sale_price_total'] ?? 0)) .
-                ' | ' .
-                __('admin.total_price') . ': ' . money((float) ($totals['total_price'] ?? 0)) .
-                ' | ' .
-                __('admin.gifted') . ': ' . (int) ($totals['gifted_quantity'] ?? 0) .
-                ' | ' .
-                __('admin.total') . ': ' . (int) ($totals['total_quantity'] ?? 0)
+                __('admin.company_profit').': '.money((float) ($totals['company_profit'] ?? 0)).
+                ' | '.
+                __('admin.gifted').': '.(int) ($totals['gifted_quantity'] ?? 0).
+                ' | '.
+                __('admin.total').': '.(int) ($totals['total_quantity'] ?? 0)
             )
             : (
-                __('admin.total_price') . ': ' . money((float) ($totals['total_price'] ?? 0)) .
-                ' | ' .
-                __('admin.gifted') . ': ' . (int) ($totals['gifted_quantity'] ?? 0) .
-                ' | ' .
-                __('admin.total') . ': ' . (int) ($totals['total_quantity'] ?? 0)
+                __('admin.total_price').': '.money((float) ($totals['total_price'] ?? 0)).
+                ' | '.
+                __('admin.gifted').': '.(int) ($totals['gifted_quantity'] ?? 0).
+                ' | '.
+                __('admin.total').': '.(int) ($totals['total_quantity'] ?? 0)
             );
 
         return Stat::make($title, $value)
