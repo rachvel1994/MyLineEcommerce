@@ -13,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Widgets\ChartWidget\Concerns\HasFiltersSchema;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\HtmlString;
 
 class SellerMonthlyStatsWidget extends StatsOverviewWidget
 {
@@ -283,6 +284,8 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
                 $description .=
                     ' | '.
                     __('admin.company_profit').': '.money((float) ($row->current_month_company_profit ?? 0));
+
+                $description = $this->withHighlightedBonus($description, $currentMonthValue * 0.10);
             }
 
             $stats[] = Stat::make(
@@ -478,9 +481,26 @@ class SellerMonthlyStatsWidget extends StatsOverviewWidget
                 __('admin.total').': '.(int) ($totals['total_quantity'] ?? 0)
             );
 
+        if ($canSeeCompanyProfit) {
+            $description = $this->withHighlightedBonus(
+                $description,
+                (float) ($totals['total_price'] ?? 0) * 0.10
+            );
+        }
+
         return Stat::make($title, $value)
             ->description($description)
             ->color($color);
+    }
+
+    private function withHighlightedBonus(string $description, float $bonus): HtmlString
+    {
+        return new HtmlString(sprintf(
+            '%s | <span style="color: #d97706; font-weight: 700;">%s: %s</span>',
+            e($description),
+            e(__('admin.bonus')),
+            e(money($bonus)),
+        ));
     }
 
     private function canSeeCompanyProfit(): bool

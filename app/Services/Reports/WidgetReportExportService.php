@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WidgetReportExportService
 {
+    private const CURRENCY_NUMBER_FORMAT = '#,##0.00 "₾"';
+
     /**
      * @return array{0: CarbonInterface, 1: CarbonInterface}
      */
@@ -642,6 +644,7 @@ class WidgetReportExportService
                 ];
 
                 if ($canSeeCompanyProfit) {
+                    $data[] = round((float) $row->total_price * 0.10, 2);
                     $data[] = (float) $row->sale_price_total;
                     $data[] = (float) $row->cost_total;
                     $data[] = (float) $row->company_profit;
@@ -662,6 +665,7 @@ class WidgetReportExportService
         if ($canSeeCompanyProfit) {
             array_push(
                 $headings,
+                __('admin.bonus'),
                 __('admin.sale_price_total'),
                 __('admin.cost_total'),
                 __('admin.company_profit'),
@@ -800,6 +804,13 @@ class WidgetReportExportService
                 if (is_int($value) || is_float($value)) {
                     $sheet->setCellValueByColumnAndRow($cellColumn, $cellRow, $value);
 
+                    if (is_float($value) || $this->isCurrencyCell($headings, $row, $columnIndex)) {
+                        $sheet
+                            ->getStyleByColumnAndRow($cellColumn, $cellRow)
+                            ->getNumberFormat()
+                            ->setFormatCode(self::CURRENCY_NUMBER_FORMAT);
+                    }
+
                     continue;
                 }
 
@@ -819,6 +830,51 @@ class WidgetReportExportService
         for ($column = 1; $column <= $lastColumn; $column++) {
             $sheet->getColumnDimensionByColumn($column)->setAutoSize(true);
         }
+    }
+
+    /**
+     * @param  list<string>  $headings
+     * @param  list<mixed>  $row
+     */
+    private function isCurrencyCell(array $headings, array $row, int $columnIndex): bool
+    {
+        $currencyHeadings = [
+            __('admin.amount'),
+            __('admin.bonus'),
+            __('admin.cash'),
+            __('admin.company_profit'),
+            __('admin.cost_total'),
+            __('admin.expense'),
+            __('admin.income'),
+            __('admin.period_total'),
+            __('admin.price'),
+            __('admin.profit'),
+            __('admin.sale_price'),
+            __('admin.sale_price_total'),
+            __('admin.self_price'),
+            __('admin.service_expense'),
+            __('admin.today'),
+            __('admin.total_price'),
+            __('admin.total_profit'),
+        ];
+
+        if (in_array($headings[$columnIndex] ?? null, $currencyHeadings, true)) {
+            return true;
+        }
+
+        $currencyMetrics = [
+            __('admin.cash'),
+            __('admin.daily_sales'),
+            __('admin.expense'),
+            __('admin.income'),
+            __('admin.monthly_sales'),
+            __('admin.profit'),
+            __('admin.self_price'),
+            __('admin.service_expense'),
+            __('admin.yearly_sales'),
+        ];
+
+        return in_array($row[$columnIndex - 1] ?? null, $currencyMetrics, true);
     }
 
     private function safeSheetTitle(string $title): string

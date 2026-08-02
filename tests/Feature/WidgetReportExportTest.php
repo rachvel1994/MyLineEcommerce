@@ -228,5 +228,7 @@ test('widget report service can build a filtered workbook', function (): void {
         ->and($spreadsheet->getSheet(1)->getCell('A2')->getValue())
         ->toBe('Start of day')
         ->and($spreadsheet->getSheet(1)->getCell('B2')->getValue())
-        ->toBe(100.0);
+        ->toBe(100.0)
+        ->and($spreadsheet->getSheet(1)->getStyle('B2')->getNumberFormat()->getFormatCode())
+        ->toBe('#,##0.00 "₾"');
 });

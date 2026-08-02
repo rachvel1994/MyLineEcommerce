@@ -131,6 +131,7 @@ return [
     'grand_total' => 'სრული ჯამი',
     'reset' => 'გასუფთავება',
     'reset_filter' => 'გასუფთავება',
+    'bonus' => 'ბონუსი',
     'added_by' => 'დაამატა',
     'to_collect' => 'რეისის ჯამი',
     'guarantee_created_successfully' => 'გარანტია წარმატებით შეიქმნა',

@@ -93,6 +93,7 @@ return [
     'grand_total' => 'Grand total',
     'reset' => 'Reset',
     'reset_filter' => 'Reset filter',
+    'bonus' => 'Bonus',
     'buyer' => 'Buyer',
     'save' => 'Save',
     'model' => 'Model',
