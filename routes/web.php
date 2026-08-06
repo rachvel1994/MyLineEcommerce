@@ -20,3 +20,4 @@ Route::middleware(['auth', 'web'])->group(function () {
     Route::get('/export/widget-reports', WidgetReportExportController::class)->name('widget-reports.export');
     Route::get('/guarantee/{id}', [PdfController::class, 'guaranteePdf'])->name('pdf.guarantee');
 });
+
