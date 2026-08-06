@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\Products\ProductResource;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\Authenticate;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
-use Illuminate\Support\Facades\Vite;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -33,7 +35,7 @@ class BackendPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/backend/theme.css')
             ->login()
             ->profile()
-            ->homeUrl('products')
+            ->homeUrl(fn (): string => ProductResource::getUrl('index'))
             ->passwordReset()
             ->colors([
                 'primary' => Color::Amber,
@@ -57,7 +59,7 @@ class BackendPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-			->plugins([
+            ->plugins([
                 FilamentShieldPlugin::make(),
             ])
             ->authMiddleware([
