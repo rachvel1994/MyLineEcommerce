@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Consignments\RelationManagers;
 
 use App\Forms\Components\PriceInput;
@@ -14,15 +16,17 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class AccessoriesRelationManager extends RelationManager
 {
-
     protected static string $relationship = 'accessories';
 
     protected static string $model = Accessory::class;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public function table(Table $table): Table
@@ -37,19 +41,79 @@ class AccessoriesRelationManager extends RelationManager
                 TextColumn::make('pivot.qty')
                     ->label(__('admin.quantity')),
 
-                TextColumn::make('pivot.unit_price')
-                    ->label(__('admin.unit'))
-                    ->money('GEL', true),
+                auth()->user()?->hasRole('ადმინისტრატორი')
+                    ? TextInputColumn::make('pivot.unit_price')
+                        ->label(__('admin.unit'))
+                        ->type('number')
+                        ->inputMode('decimal')
+                        ->step('0.01')
+                        ->suffix('₾')
+                        ->rules(['required', 'numeric', 'min:0'])
+                        ->disabled(fn (): bool => ! auth()->user()?->hasRole('ადმინისტრატორი'))
+                        ->updateStateUsing(function (Accessory $record, mixed $state, RelationManager $livewire): float {
+                            abort_unless(auth()->user()?->hasRole('ადმინისტრატორი'), 403);
 
-                TextColumn::make('pivot.line_total')
-                    ->label(__('admin.total_price'))
-                    ->money('GEL', true),
+                            $unitPrice = round((float) $state, 2);
+                            $quantity = max(1, (int) $record->pivot->qty);
+                            $consignment = $livewire->getOwnerRecord();
+
+                            DB::transaction(function () use ($consignment, $record, $quantity, $unitPrice): void {
+                                $consignment->accessories()->updateExistingPivot($record->getKey(), [
+                                    'unit_price' => $unitPrice,
+                                    'line_total' => round($quantity * $unitPrice, 2),
+                                ]);
+
+                                $consignment->recalculateTotals();
+                            });
+
+                            $livewire->dispatch('$refresh');
+                            $livewire->dispatch('refreshConsignment');
+
+                            return $unitPrice;
+                        })
+                    : TextColumn::make('pivot.unit_price')
+                        ->label(__('admin.unit'))
+                        ->money('GEL', true),
+
+                auth()->user()?->hasRole('ადმინისტრატორი')
+                    ? TextInputColumn::make('pivot.line_total')
+                        ->label(__('admin.total_price'))
+                        ->type('number')
+                        ->inputMode('decimal')
+                        ->step('0.01')
+                        ->suffix('₾')
+                        ->rules(['required', 'numeric', 'min:0'])
+                        ->disabled(fn (): bool => ! auth()->user()?->hasRole('ადმინისტრატორი'))
+                        ->updateStateUsing(function (Accessory $record, mixed $state, RelationManager $livewire): float {
+                            abort_unless(auth()->user()?->hasRole('ადმინისტრატორი'), 403);
+
+                            $lineTotal = round((float) $state, 2);
+                            $quantity = max(1, (int) $record->pivot->qty);
+                            $consignment = $livewire->getOwnerRecord();
+
+                            DB::transaction(function () use ($consignment, $record, $quantity, $lineTotal): void {
+                                $consignment->accessories()->updateExistingPivot($record->getKey(), [
+                                    'unit_price' => round($lineTotal / $quantity, 2),
+                                    'line_total' => $lineTotal,
+                                ]);
+
+                                $consignment->recalculateTotals();
+                            });
+
+                            $livewire->dispatch('$refresh');
+                            $livewire->dispatch('refreshConsignment');
+
+                            return $lineTotal;
+                        })
+                    : TextColumn::make('pivot.line_total')
+                        ->label(__('admin.total_price'))
+                        ->money('GEL', true),
             ])
             ->headerActions([
                 AttachAction::make()
                     ->label(__('admin.add_consignment_product'))
                     ->preloadRecordSelect()
-                    ->authorize(fn() => true)
+                    ->authorize(fn () => true)
                     ->modalWidth('7xl')
                     ->schema(function (AttachAction $action): array {
                         return [
@@ -65,7 +129,7 @@ class AccessoriesRelationManager extends RelationManager
                                     $consignmentId = $this->getOwnerRecord()->getKey();
 
                                     return Accessory::query()
-                                        ->whereDoesntHave('consignments', fn($q) => $q->where('consignment_id', $consignmentId)
+                                        ->whereDoesntHave('consignments', fn ($q) => $q->where('consignment_id', $consignmentId)
                                         )
                                         ->when($search !== '', function ($q) use ($search) {
                                             $q->where('name', 'like', "%{$search}%");
@@ -81,20 +145,21 @@ class AccessoriesRelationManager extends RelationManager
                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                     $accessory = Accessory::query()->find($state);
 
-                                    if (!$accessory) {
+                                    if (! $accessory) {
                                         $set('name', null);
                                         $set('qty', 1);
                                         $set('unit_price', null);
                                         $set('line_total', null);
+
                                         return;
                                     }
 
                                     $set('name', $accessory->name);
 
-                                    $price = (float)($accessory->sale_price ?? $accessory->retail_price ?? 0);
+                                    $price = (float) ($accessory->sale_price ?? $accessory->retail_price ?? 0);
                                     $set('unit_price', $price);
 
-                                    $qty = (float)($get('qty') ?: 1);
+                                    $qty = (float) ($get('qty') ?: 1);
                                     $set('qty', $qty);
                                     $set('line_total', $qty * $price);
                                 }),
@@ -113,8 +178,8 @@ class AccessoriesRelationManager extends RelationManager
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        $qty = (float)($state ?? 0);
-                                        $price = (float)($get('unit_price') ?? 0);
+                                        $qty = (float) ($state ?? 0);
+                                        $price = (float) ($get('unit_price') ?? 0);
                                         $set('line_total', $qty * $price);
                                     }),
                             ]),
@@ -127,8 +192,8 @@ class AccessoriesRelationManager extends RelationManager
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        $price = (float)($state ?? 0);
-                                        $qty = (float)($get('qty') ?? 0);
+                                        $price = (float) ($state ?? 0);
+                                        $qty = (float) ($get('qty') ?? 0);
                                         $set('line_total', $qty * $price);
                                     }),
 
@@ -140,8 +205,8 @@ class AccessoriesRelationManager extends RelationManager
                         ];
                     })
                     ->mutateDataUsing(function (array $data): array {
-                        $qty = (float)($data['qty'] ?? 0);
-                        $price = (float)($data['unit_price'] ?? 0);
+                        $qty = (float) ($data['qty'] ?? 0);
+                        $price = (float) ($data['unit_price'] ?? 0);
 
                         $data['line_total'] = $qty * $price;
 
@@ -154,11 +219,11 @@ class AccessoriesRelationManager extends RelationManager
                         $livewire->dispatch('$refresh');
                         $livewire->dispatch('refreshConsignment');
                     })
-                    ->visible(fn() => canAbility('AttachConsignmentAccessories:Accessory')),
+                    ->visible(fn () => canAbility('AttachConsignmentAccessories:Accessory')),
             ])
             ->recordActions([
                 EditAction::make()
-                    ->visible(fn() => canAbility('UpdateConsignmentAccessories:Accessory'))
+                    ->visible(fn () => canAbility('UpdateConsignmentAccessories:Accessory'))
                     ->modalWidth('7xl')
                     ->schema(function ($record): array {
                         /** @var Accessory $record */
@@ -183,8 +248,8 @@ class AccessoriesRelationManager extends RelationManager
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        $qty = (float)($state ?? 0);
-                                        $price = (float)($get('unit_price') ?? 0);
+                                        $qty = (float) ($state ?? 0);
+                                        $price = (float) ($get('unit_price') ?? 0);
                                         $set('line_total', $qty * $price);
                                     }),
                             ]),
@@ -198,8 +263,8 @@ class AccessoriesRelationManager extends RelationManager
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        $price = (float)($state ?? 0);
-                                        $qty = (float)($get('qty') ?? 0);
+                                        $price = (float) ($state ?? 0);
+                                        $qty = (float) ($get('qty') ?? 0);
                                         $set('line_total', $qty * $price);
                                     }),
 
@@ -209,16 +274,16 @@ class AccessoriesRelationManager extends RelationManager
                                     ->disabled()
                                     ->dehydrated(true)
                                     ->afterStateHydrated(function ($component, $state, Get $get) {
-                                        $qty = (float)($get('qty') ?? 0);
-                                        $price = (float)($get('unit_price') ?? 0);
+                                        $qty = (float) ($get('qty') ?? 0);
+                                        $price = (float) ($get('unit_price') ?? 0);
                                         $component->state($qty * $price);
                                     }),
                             ]),
                         ];
                     })
                     ->mutateDataUsing(function (array $data): array {
-                        $qty = (float)($data['qty'] ?? 0);
-                        $price = (float)($data['unit_price'] ?? 0);
+                        $qty = (float) ($data['qty'] ?? 0);
+                        $price = (float) ($data['unit_price'] ?? 0);
 
                         $data['line_total'] = $qty * $price;
 
@@ -239,7 +304,7 @@ class AccessoriesRelationManager extends RelationManager
 
                 DetachAction::make()
                     ->label(__('admin.remove_consignment_product'))
-                    ->visible(fn() => canAbility('DetachConsignmentAccessories:Accessory'))
+                    ->visible(fn () => canAbility('DetachConsignmentAccessories:Accessory'))
                     ->after(function (RelationManager $livewire) {
                         $livewire->getOwnerRecord()->recalculateTotals();
                         $livewire->getOwnerRecord()->refresh();

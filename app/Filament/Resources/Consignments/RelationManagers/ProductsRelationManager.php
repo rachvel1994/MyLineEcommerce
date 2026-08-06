@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Consignments\RelationManagers;
 
 use App\Forms\Components\PriceInput;
@@ -60,9 +62,38 @@ class ProductsRelationManager extends RelationManager
                     ->label(__('admin.condition'))
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('line_total')
-                    ->label(__('admin.retail_price'))
-                    ->money('GEL', true),
+                auth()->user()?->hasRole('ადმინისტრატორი')
+                    ? Tables\Columns\TextInputColumn::make('line_total')
+                        ->label(__('admin.retail_price'))
+                        ->type('number')
+                        ->inputMode('decimal')
+                        ->step('0.01')
+                        ->suffix('₾')
+                        ->rules(['required', 'numeric', 'min:0'])
+                        ->disabled(fn (): bool => ! auth()->user()?->hasRole('ადმინისტრატორი'))
+                        ->updateStateUsing(function (Product $record, mixed $state, RelationManager $livewire): float {
+                            abort_unless(auth()->user()?->hasRole('ადმინისტრატორი'), 403);
+
+                            $price = round((float) $state, 2);
+                            $consignment = $livewire->getOwnerRecord();
+
+                            DB::transaction(function () use ($consignment, $record, $price): void {
+                                $consignment->products()->updateExistingPivot($record->getKey(), [
+                                    'unit_price' => $price,
+                                    'line_total' => $price,
+                                ]);
+
+                                $consignment->recalculateTotals();
+                            });
+
+                            $livewire->dispatch('$refresh');
+                            $livewire->dispatch('refreshConsignment');
+
+                            return $price;
+                        })
+                    : Tables\Columns\TextColumn::make('line_total')
+                        ->label(__('admin.retail_price'))
+                        ->money('GEL', true),
             ])
             ->headerActions([
                 static::Pay()
